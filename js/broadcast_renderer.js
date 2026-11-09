@@ -34,14 +34,11 @@ function renderBroadcastHeader(state) {
   return `
     <header class="bc-header">
       <div class="bc-header-left">
-        <div class="bc-header-title-text">
-          <span class="bc-htt-kicker">KONTES ROBOT SEARCH AND RESCUE</span>
-          <span class="bc-htt-main">KSTI 2026</span>
-        </div>
+        <img src="assets/partner_logos.png" alt="Kemdiktisaintek LPDP ITS KSTI 26" class="bc-partner-strip" />
       </div>
       <div class="bc-header-center">
         <div class="bc-ksti-pill-group">
-          <div class="bc-brand-text-badge">KSTI 26</div>
+          <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="bc-ksti-mini-logo" />
           <div class="bc-event-meta">
             <span class="bc-national-badge">${banners.stageBadge || 'Tingkat Nasional'}</span>
             <span class="bc-date-row">
@@ -51,9 +48,7 @@ function renderBroadcastHeader(state) {
           </div>
         </div>
       </div>
-      <div class="bc-header-right">
-        <span class="bc-header-venue-text">${banners.eventVenue || 'Hall Robotika ITS, Surabaya'}</span>
-      </div>
+      <div class="bc-header-right"></div>
       <div class="bc-top-right-swoosh"></div>
     </header>
   `;
@@ -103,7 +98,7 @@ function renderSingleCameraSlotHTML(state) {
       <!-- Replay Video for DVR / VAR Review -->
       <video class="bc-cam-video bc-cam-video-replay" playsinline muted style="display:none;"></video>
 
-      <!-- Floating VAR Review Badge Watermark -->
+      <!-- Floating VAR Review Badge Watermark (Hanya muncul jika VAR sedang dimundurkan) -->
       <div class="bc-cam-var-badge" style="display:none;">
         <span class="bc-var-pulse-dot"></span>
         <span class="bc-var-badge-text">VAR REVIEW</span>
@@ -433,60 +428,128 @@ function renderRundownScene(state) {
 /**
  * SCENE 4 & 5: SESAAT LAGI & ISTIRAHAT
  */
+/**
+ * Helper: Render Official Broadcast Screen (KSTI 2026 Brand Standard)
+ * Clean white canvas, top-right swoosh, faint watermark, official partner logos, and human typography
+ */
+function renderRefBroadcastScreen({ state, mode, kicker, titleLine1, titleLine2, titleLine3, isSubStatus, subtitle, badges, extraInfoHTML }) {
+  const banners = (state && state.banners) || {};
+  return `
+    <div class="bc-scene bc-scene-ref-broadcast bc-ref-mode-${mode}">
+      <!-- Top-Right Smooth Organic Swoosh (KSTI Navy Theme) -->
+      <div class="bc-ref-top-swoosh"></div>
+
+      <!-- Faint Typographic Watermark (KSTI Theme) -->
+      <div class="bc-ref-watermark-bg" aria-hidden="true">KSTI 2026</div>
+
+      <!-- Top Broadcast Logos Bar -->
+      <header class="bc-ref-header">
+        <div class="bc-ref-header-left">
+          <img src="assets/partner_logos.png" alt="Kemdiktisaintek LPDP ITS KSTI 26" class="bc-ref-header-partners" />
+          <div class="bc-ref-header-divider"></div>
+          <div class="bc-ref-header-emblem-wrap">
+            <img src="assets/ksti_cover_logo.png" alt="KRSRI KSTI 2026" class="bc-ref-header-emblem" />
+          </div>
+        </div>
+        <div class="bc-ref-header-right">
+          <span class="bc-ref-national-badge">${banners.stageBadge || 'Tingkat Nasional'}</span>
+          <span class="bc-ref-header-date">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            ${banners.eventDate || 'Kamis, 12 November 2026'}
+          </span>
+        </div>
+      </header>
+
+      <!-- Main Stage: Single Clean Spacious Hero Stage (No Card Box) -->
+      <main class="bc-ref-main">
+        <div class="bc-ref-hero-side">
+          <div class="bc-ref-category-kicker">${kicker}</div>
+          <h1 class="bc-ref-main-title">
+            <span class="bc-ref-title-p1">${titleLine1}</span>
+            <span class="bc-ref-title-p2">${titleLine2}</span>
+            <span class="${isSubStatus ? 'bc-ref-title-status' : 'bc-ref-title-year'}">${titleLine3}</span>
+          </h1>
+          <p class="bc-ref-event-subtitle">${subtitle}</p>
+          ${extraInfoHTML || ''}
+          <div class="bc-ref-meta-row">
+            ${(badges || []).map((b) => `<span class="${b.className}">${b.text}</span>`).join('')}
+          </div>
+        </div>
+      </main>
+
+      <!-- Dynamic Curved Accent Line (KSTI Gold Theme) -->
+      <div class="bc-ref-bottom-curve-wrap">
+        <svg class="bc-ref-bottom-curve-svg" viewBox="0 0 1920 60" preserveAspectRatio="none">
+          <path d="M 0,55 Q 750,55 960,18 T 1920,18" fill="none" stroke="#f5b800" stroke-width="4.5" />
+        </svg>
+      </div>
+
+      <!-- Bottom Sponsor & Supporter Footer -->
+      <footer class="bc-ref-footer">
+        <div class="bc-ref-footer-left">
+          <span class="bc-ref-sponsor-tag">Didukung &amp; Disponsori oleh:</span>
+          <img src="assets/partner_logos.png" alt="Mitra &amp; Sponsor Resmi KSTI 2026" class="bc-ref-footer-logos" />
+        </div>
+        <div class="bc-ref-footer-right">
+          <span class="bc-ref-footer-venue">${banners.eventVenue || 'Hall Robotika ITS, Surabaya'}</span>
+          <span class="bc-ref-footer-sep">|</span>
+          <span class="bc-ref-footer-org">Konvensi Sains, Teknologi, dan Industri Indonesia</span>
+        </div>
+      </footer>
+    </div>
+  `;
+}
+
+/**
+ * SCENE 4 & 5: SESAAT LAGI & ISTIRAHAT (Official Broadcast Standard)
+ */
 function renderBreakOrSoonScene(state, mode = 'sesaat_lagi') {
   const banners = state.banners || {};
   const activeRun = state.activeRun || {};
   const activeTeam = getTeamById(state, (state.scoring && state.scoring.activeTeamId) || activeRun.teamId);
-  const mainTitle = mode === 'istirahat' ? (banners.istirahatTitle || 'ISTIRAHAT') : (banners.sesaatLagiTitle || 'SESAAT LAGI');
-  const subTitle = mode === 'istirahat'
-    ? (banners.istirahatSubtitle || 'Sesi Istirahat / ISHOMA dan Persiapan Arena')
-    : `${activeTeam.name} - ${activeTeam.university}`;
+  const trialIndex = Number((state.scoring && state.scoring.trialIndex) ?? activeRun.trialIndex ?? 0);
 
-  return `
-    <div class="bc-scene bc-scene-intermission">
-      <div class="bc-watermark-pattern"></div>
-      ${renderBroadcastHeader(state)}
+  if (mode === 'sesaat_lagi') {
+    const extraInfoHTML = `
+      <div class="bc-ref-team-inline-bar">
+        <span class="bc-ref-tib-tag">Percobaan ${trialIndex + 1}</span>
+        <span class="bc-ref-tib-name">${activeTeam.name}</span>
+        <span class="bc-ref-tib-uni">(${activeTeam.university})</span>
+      </div>
+    `;
 
-      <main class="bc-intermission-main">
-        <div class="bc-intermission-left">
-          <div class="bc-inter-logo-row">
-            <div class="bc-inter-brand-badge">KSTI 2026</div>
-            <div class="bc-inter-date-block">
-              <div class="bc-inter-nat-pill">${banners.stageBadge || 'Tingkat Nasional'}</div>
-              <div class="bc-inter-date-text">
-                ${banners.eventDate || 'Kamis, 12 November 2026'}
-              </div>
-              <div class="bc-inter-venue-sub">${banners.eventVenue || 'Hall Robotika ITS, Surabaya'}</div>
-            </div>
-          </div>
+    return renderRefBroadcastScreen({
+      state,
+      mode: 'sesaat_lagi',
+      kicker: 'INFORMASI PERTANDINGAN',
+      titleLine1: 'Sesaat',
+      titleLine2: 'Lagi',
+      titleLine3: banners.sesaatLagiTitle || 'Pertandingan Segera Dimulai',
+      isSubStatus: true,
+      subtitle: banners.sesaatLagiSubtitle || 'Harap seluruh tim dan penonton bersiap di arena kompetisi robotika',
+      extraInfoHTML,
+      badges: [
+        { className: 'bc-ref-nat-pill', text: 'ARENA SAR KSTI 2026' },
+        { className: 'bc-ref-venue-text', text: banners.eventVenue || 'Hall Robotika ITS, Surabaya' }
+      ]
+    });
+  }
 
-          <div class="bc-inter-ksti-category-card">
-            <div class="bc-ikc-kicker">ROBOTICS COMPETITION AT KSTI 2026</div>
-            <div class="bc-ikc-title">Search and Rescue (SAR)</div>
-            <div class="bc-ikc-desc">12 Tim Peserta | 3 Percobaan per Tim | Skor Terbaik Menjadi Nilai Akhir</div>
-          </div>
-        </div>
-
-        <div class="bc-intermission-right">
-          <div class="bc-status-banner-box">
-            <div class="bc-status-banner-topbar">
-              <span class="bc-topbar-corner"></span>
-            </div>
-            <div class="bc-status-banner-body">
-              <h1 class="bc-status-banner-heading">${mainTitle}</h1>
-              ${subTitle ? `<p class="bc-status-banner-sub">${subTitle}</p>` : ''}
-            </div>
-          </div>
-        </div>
-
-        <div class="bc-mascot-corner">
-          <div class="bc-mascot-circle-bg"></div>
-        </div>
-      </main>
-
-      ${renderBroadcastFooter(state)}
-    </div>
-  `;
+  // mode === 'istirahat'
+  return renderRefBroadcastScreen({
+    state,
+    mode: 'istirahat',
+    kicker: 'INFORMASI SESI RESMI',
+    titleLine1: 'Jeda',
+    titleLine2: 'Istirahat',
+    titleLine3: banners.istirahatTitle || 'ISHOMA & Persiapan Arena',
+    isSubStatus: true,
+    subtitle: banners.istirahatSubtitle || 'Perlombaan dihentikan sementara untuk ibadah, istirahat, makan, dan sterilisasi arena',
+    badges: [
+      { className: 'bc-ref-nat-pill', text: 'JEDA RESMI KOMPETISI' },
+      { className: 'bc-ref-venue-text', text: banners.eventVenue || 'Hall Robotika ITS, Surabaya' }
+    ]
+  });
 }
 
 /**
@@ -527,34 +590,26 @@ function renderWinnerScene(state) {
 }
 
 /**
- * SCENE 7: SPLASH / TITLE SCREEN (Centered Hero Without 12-Team List)
+ * SCENE 7: SPLASH / TITLE SCREEN (Official Broadcast Standard)
  */
 function renderSplashScene(state) {
   const banners = (state && state.banners) || {};
 
-  return `
-    <div class="bc-scene bc-scene-splash">
-      <div class="bc-watermark-pattern"></div>
-      ${renderBroadcastHeader(state)}
-
-      <main class="bc-splash-hero-center">
-        <div class="bc-splash-hero-card">
-          <div class="bc-splash-center-emblem">KSTI 2026</div>
-          <div class="bc-splash-kicker">KONVENSI SAINS, TEKNOLOGI, DAN INDUSTRI INDONESIA 2026</div>
-          <h1 class="bc-splash-heading-hero">
-            KONTES ROBOT <span class="bc-splash-year">SEARCH AND RESCUE (SAR)</span>
-          </h1>
-          <div class="bc-splash-stage-tag">${banners.stageBadge || 'TINGKAT NASIONAL'}</div>
-          <div class="bc-splash-meta-pills">
-            <span class="bc-sp-pill-gold">${banners.eventVenue || 'Hall Robotika ITS, Surabaya'}</span>
-            <span class="bc-sp-pill-blue">${banners.eventDate || 'Kamis, 12 November 2026'}</span>
-          </div>
-        </div>
-      </main>
-
-      ${renderBroadcastFooter(state)}
-    </div>
-  `;
+  return renderRefBroadcastScreen({
+    state,
+    mode: 'splash',
+    kicker: 'KONTES ROBOT SEARCH AND RESCUE',
+    titleLine1: 'Kontes Robot',
+    titleLine2: 'Search and Rescue',
+    titleLine3: '2026',
+    isSubStatus: false,
+    subtitle: 'Konvensi Sains, Teknologi, dan Industri Indonesia (KSTI 2026)',
+    badges: [
+      { className: 'bc-ref-nat-pill', text: banners.stageBadge || 'Tingkat Nasional' },
+      { className: 'bc-ref-venue-text', text: banners.eventVenue || 'Hall Robotika ITS, Surabaya' },
+      { className: 'bc-ref-date-pill', text: banners.eventDate || 'Kamis, 12 November 2026' }
+    ]
+  });
 }
 
 /**

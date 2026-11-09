@@ -566,6 +566,14 @@ class KSTIStateStore {
       ? partial.teams
       : base.teams;
 
+    if (partial.prepTimer && partial.prepTimer.durationSec === 180) {
+      partial.prepTimer.durationSec = 300;
+      if (!partial.prepTimer.isRunning) {
+        partial.prepTimer.remainingSec = 300;
+        partial.prepTimer.baseRemainingSec = 300;
+      }
+    }
+
     return Object.assign(base, partial, {
       teams: mergedTeams,
       prepTimer: Object.assign({}, base.prepTimer, partial.prepTimer || {}),

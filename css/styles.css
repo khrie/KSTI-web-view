@@ -92,42 +92,6 @@ body.display-body {
   object-fit: contain;
 }
 
-.bc-header-title-text {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-.bc-htt-kicker {
-  font-size: clamp(9px, 0.85vw, 13px);
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: var(--ksti-navy);
-}
-.bc-htt-main {
-  font-size: clamp(14px, 1.4vw, 22px);
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  color: var(--ksti-navy);
-}
-
-.bc-brand-text-badge {
-  background: var(--ksti-navy);
-  color: var(--ksti-gold);
-  font-weight: 900;
-  font-size: clamp(14px, 1.3vw, 20px);
-  padding: 4px 12px;
-  border-radius: 4px;
-  letter-spacing: 1px;
-  border: 1.5px solid var(--ksti-gold);
-}
-
-.bc-header-venue-text {
-  font-size: clamp(11px, 1.0vw, 15px);
-  font-weight: 700;
-  color: var(--ksti-navy);
-  opacity: 0.85;
-}
-
 .bc-ksti-pill-group {
   display: flex;
   align-items: center;
@@ -974,149 +938,327 @@ body.display-body {
 }
 
 /* ==========================================================================
-   SCENE 4 & 5: SESAAT LAGI & ISTIRAHAT
+   SCENE 4, 5, 7: OFFICIAL BROADCAST SCREENS (TITLE SCREEN, SESAAT LAGI, ISTIRAHAT)
+   KSTI 2026 Brand Theme (Navy, Blue, Gold & Clean White Broadcast Layout)
    ========================================================================== */
-.bc-intermission-main {
+.bc-scene-ref-broadcast {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  background: #ffffff;
+  color: #0f172a;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Plus Jakarta Sans', 'Montserrat', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+}
+
+/* Top-Right Smooth Organic Swoosh (KSTI Navy Theme) */
+.bc-ref-top-swoosh {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: clamp(140px, 17vw, 320px);
+  height: clamp(60px, 11vh, 110px);
+  background: var(--ksti-navy);
+  border-bottom-left-radius: clamp(70px, 9vw, 130px);
+  z-index: 3;
+}
+
+/* Faint Watermark Typography in Background (KSTI Navy Theme) */
+.bc-ref-watermark-bg {
+  position: absolute;
+  right: 3vw;
+  top: 10vh;
+  font-size: clamp(120px, 19vw, 300px);
+  font-weight: 900;
+  color: rgba(0, 40, 85, 0.035);
+  line-height: 0.85;
+  user-select: none;
+  pointer-events: none;
+  z-index: 0;
+  letter-spacing: 2px;
+}
+
+/* Header: Partner Logos and Division Crest */
+.bc-ref-header {
   position: relative;
   z-index: 4;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 1fr 1.1fr;
-  align-items: center;
-  padding: 0 5vw;
-}
-
-.bc-intermission-left {
-  display: flex;
-  flex-direction: column;
-  gap: 3.5vh;
-}
-
-.bc-inter-logo-row {
+  height: clamp(64px, 9.5vh, 96px);
+  padding: 0 3.5vw;
   display: flex;
   align-items: center;
-  gap: 1.5vw;
+  justify-content: space-between;
+  background: #ffffff;
+  border-bottom: 1.5px solid #f1f5f9;
 }
-.bc-inter-ksti-logo {
-  height: clamp(75px, 13vh, 135px);
+
+.bc-ref-header-left {
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 1.5vw, 24px);
+}
+
+.bc-ref-header-partners {
+  height: clamp(34px, 5.2vh, 56px);
   width: auto;
   object-fit: contain;
 }
-.bc-inter-brand-badge {
+
+.bc-ref-header-divider {
+  width: 1.5px;
+  height: clamp(28px, 4vh, 44px);
+  background: #cbd5e1;
+}
+
+.bc-ref-header-emblem-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.bc-ref-header-emblem {
+  height: clamp(36px, 5.5vh, 60px);
+  width: auto;
+  object-fit: contain;
+}
+
+.bc-ref-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-right: clamp(130px, 16vw, 300px);
+}
+
+.bc-ref-national-badge {
   background: var(--ksti-navy);
-  color: var(--ksti-gold);
-  font-weight: 900;
-  font-size: clamp(26px, 3.2vw, 48px);
-  padding: clamp(8px, 1.4vh, 16px) clamp(16px, 2.2vw, 32px);
-  border-radius: 8px;
-  letter-spacing: 2px;
-  border: 3px solid var(--ksti-gold);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  color: #ffffff;
+  border-left: 3.5px solid var(--ksti-gold);
+  font-weight: 800;
+  font-size: clamp(11px, 1.1vw, 15px);
+  padding: 4px 14px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.bc-ref-header-date {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  color: #475569;
+  font-size: clamp(11.5px, 1.1vw, 15px);
+  font-weight: 700;
 }
-.bc-inter-date-block {
+
+/* Main Content: Single Clean Spacious Hero Stage */
+.bc-ref-main {
+  position: relative;
+  z-index: 2;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-}
-.bc-inter-nat-pill {
-  background: #003876;
-  color: #ffffff;
-  font-size: clamp(16px, 2vw, 28px);
-  font-weight: 800;
-  padding: 5px 20px;
-  border-left: 6px solid var(--ksti-gold);
-}
-.bc-inter-date-text {
-  font-size: clamp(15px, 1.8vw, 24px);
-  font-weight: 800;
-  color: var(--ksti-blue);
-}
-.bc-inter-venue-sub {
-  font-size: clamp(12px, 1.1vw, 16px);
-  font-weight: 600;
-  color: #475569;
+  justify-content: center;
+  padding: 0 6.5vw;
 }
 
-.bc-inter-ksti-category-card {
-  background: #f8fafc;
-  border: 2px solid #cbd5e1;
-  border-left: 6px solid var(--ksti-blue);
-  padding: 14px 20px;
-  max-width: 480px;
+/* Hero Typography */
+.bc-ref-hero-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 960px;
 }
-.bc-ikc-kicker {
-  font-size: 12px;
+
+.bc-ref-category-kicker {
+  font-size: clamp(12px, 1.2vw, 16px);
   font-weight: 800;
   color: var(--ksti-sky);
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
 }
-.bc-ikc-title {
-  font-size: clamp(22px, 2.5vw, 34px);
+
+.bc-ref-main-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 0.98;
+}
+
+.bc-ref-title-p1 {
+  font-size: clamp(40px, 5.6vw, 90px);
+  font-weight: 800;
+  color: var(--ksti-navy);
+  letter-spacing: -0.8px;
+}
+
+.bc-ref-title-p2 {
+  font-size: clamp(40px, 5.6vw, 90px);
   font-weight: 800;
   color: var(--ksti-blue);
+  letter-spacing: -0.8px;
 }
-.bc-ikc-desc {
-  font-size: 13px;
+
+.bc-ref-title-year {
+  font-size: clamp(36px, 5vw, 80px);
+  font-weight: 800;
+  color: #d97706;
+  margin-top: 6px;
+  letter-spacing: -0.5px;
+}
+
+.bc-ref-title-status {
+  font-size: clamp(26px, 3.2vw, 48px);
+  font-weight: 800;
+  color: var(--ksti-sky);
+  margin-top: 10px;
+  line-height: 1.15;
+}
+
+.bc-ref-event-subtitle {
+  font-size: clamp(15px, 1.5vw, 22px);
   font-weight: 600;
   color: #475569;
-  margin-top: 2px;
+  margin-top: clamp(14px, 2vh, 24px);
+  max-width: 780px;
+  line-height: 1.45;
 }
 
-.bc-status-banner-box {
-  width: 100%;
-  max-width: 580px;
+/* Sesaat Lagi Inline Team Highlight Bar */
+.bc-ref-team-inline-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-left: 5px solid var(--ksti-sky);
+  padding: 8px 18px;
+  border-radius: 6px;
+  margin-top: clamp(14px, 2vh, 22px);
+  width: fit-content;
 }
-.bc-status-banner-topbar {
-  height: 32px;
-  background: #2589d8;
-  position: relative;
-}
-.bc-topbar-corner {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 42px;
-  background: var(--ksti-gold);
-  border-bottom-right-radius: 32px;
-}
-.bc-status-banner-body {
-  background: var(--ksti-blue);
-  padding: 3.5vh 2.5vw;
-  color: #ffffff;
-}
-.bc-status-banner-heading {
-  font-size: clamp(32px, 4.2vw, 60px);
+
+.bc-ref-tib-tag {
+  background: var(--ksti-navy);
+  color: var(--ksti-gold);
+  font-size: 11px;
   font-weight: 800;
-  letter-spacing: 1px;
-}
-.bc-status-banner-sub {
-  margin-top: 8px;
-  font-size: clamp(13px, 1.25vw, 18px);
-  font-weight: 700;
-  color: #fde047;
+  padding: 3px 10px;
+  border-radius: 3px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
-.bc-mascot-corner {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 22vw;
-  height: 32vh;
-  pointer-events: none;
-  overflow: hidden;
+.bc-ref-tib-name {
+  font-size: clamp(15px, 1.5vw, 20px);
+  font-weight: 800;
+  color: var(--ksti-navy);
 }
-.bc-mascot-circle-bg {
-  position: absolute;
-  right: -6vw;
-  bottom: -10vh;
-  width: 24vw;
-  height: 24vw;
-  border-radius: 50%;
-  background: var(--ksti-gold);
+
+.bc-ref-tib-uni {
+  font-size: clamp(13px, 1.25vw, 16px);
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Meta Badges Row */
+.bc-ref-meta-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: clamp(14px, 2vh, 26px);
+}
+
+.bc-ref-nat-pill {
+  background: var(--ksti-navy);
+  color: #ffffff;
+  border-left: 4px solid var(--ksti-gold);
+  font-weight: 800;
+  font-size: clamp(12.5px, 1.2vw, 16.5px);
+  padding: 6px 18px;
+  border-radius: 4px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.bc-ref-date-pill {
+  background: #f0f9ff;
+  color: var(--ksti-sky);
+  border: 1.5px solid #bae6fd;
+  font-size: clamp(12.5px, 1.2vw, 16.5px);
+  padding: 6px 18px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.bc-ref-venue-text {
+  font-size: clamp(13.5px, 1.25vw, 17.5px);
+  font-weight: 700;
+  color: var(--ksti-blue);
+}
+
+/* Dynamic Curved Line from Reference (KSTI Gold Accent) */
+.bc-ref-bottom-curve-wrap {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  height: clamp(24px, 4vh, 40px);
+  pointer-events: none;
+}
+
+.bc-ref-bottom-curve-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Bottom Sponsor / Supporter Footer */
+.bc-ref-footer {
+  position: relative;
+  z-index: 4;
+  height: clamp(52px, 7.8vh, 80px);
+  padding: 0 3.5vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+}
+
+.bc-ref-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.bc-ref-sponsor-tag {
+  font-size: clamp(10.5px, 0.95vw, 13px);
+  font-weight: 700;
+  color: #64748b;
+}
+
+.bc-ref-footer-logos {
+  height: clamp(28px, 4.2vh, 48px);
+  width: auto;
+  object-fit: contain;
+}
+
+.bc-ref-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: clamp(11.5px, 1.05vw, 14.5px);
+  font-weight: 700;
+  color: #475569;
+}
+
+.bc-ref-footer-sep {
+  color: #cbd5e1;
+}
+
+.bc-ref-footer-venue {
+  color: var(--ksti-navy);
+  font-weight: 800;
 }
 
 /* ==========================================================================
@@ -1194,103 +1336,8 @@ body.display-body {
 }
 
 /* ==========================================================================
-   SCENE 7 & 8: SPLASH (TITLE SCREEN) & 12-TEAM SCOREBOARD
+   SCENE 8: 12-TEAM SCOREBOARD
    ========================================================================== */
-.bc-splash-hero-center {
-  position: relative;
-  z-index: 4;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2vh 5vw;
-  text-align: center;
-}
-.bc-splash-hero-card {
-  width: 100%;
-  max-width: 1080px;
-  background: #ffffff;
-  border: 2.5px solid var(--ksti-blue);
-  border-top: 8px solid var(--ksti-gold);
-  padding: 5vh 4vw;
-  box-shadow: 0 12px 32px rgba(0, 40, 85, 0.1);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.8vh;
-}
-.bc-splash-center-logo {
-  height: clamp(68px, 11.5vh, 120px);
-  width: auto;
-  object-fit: contain;
-  margin-bottom: 0.5vh;
-}
-.bc-splash-center-emblem {
-  background: var(--ksti-navy);
-  color: var(--ksti-gold);
-  font-weight: 900;
-  font-size: clamp(32px, 4vw, 56px);
-  padding: clamp(10px, 1.8vh, 20px) clamp(24px, 3vw, 44px);
-  border-radius: 10px;
-  letter-spacing: 3px;
-  border: 3.5px solid var(--ksti-gold);
-  box-shadow: 0 6px 20px rgba(0, 56, 118, 0.25);
-  margin-bottom: 1vh;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.bc-splash-kicker {
-  font-size: clamp(13px, 1.35vw, 19px);
-  font-weight: 800;
-  color: var(--ksti-sky);
-  letter-spacing: 1.4px;
-}
-.bc-splash-heading-hero {
-  font-size: clamp(32px, 4.4vw, 64px);
-  font-weight: 900;
-  color: var(--ksti-blue);
-  line-height: 1.1;
-}
-.bc-splash-year {
-  font-weight: 900;
-  color: #d97706;
-  display: block;
-  margin-top: 0.4vh;
-}
-.bc-splash-stage-tag {
-  font-size: clamp(14px, 1.3vw, 20px);
-  font-weight: 800;
-  color: #003876;
-  background: #f0f9ff;
-  border: 1.5px solid #7dd3fc;
-  padding: 6px 22px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-}
-.bc-splash-meta-pills {
-  margin-top: 1vh;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-.bc-sp-pill-gold {
-  background: var(--ksti-gold);
-  color: #002855;
-  font-size: clamp(13px, 1.25vw, 18px);
-  font-weight: 800;
-  padding: 8px 22px;
-}
-.bc-sp-pill-blue {
-  background: var(--ksti-blue);
-  color: #ffffff;
-  font-size: clamp(13px, 1.25vw, 18px);
-  font-weight: 800;
-  padding: 8px 22px;
-}
 
 .bc-sb-main {
   position: relative;
@@ -1428,19 +1475,6 @@ body.display-body {
   background: #fff;
   padding: 2px 6px;
   border-radius: 2px;
-}
-.op-brand-emblem {
-  background: var(--ksti-gold);
-  color: var(--ksti-navy);
-  font-weight: 900;
-  font-size: 14px;
-  letter-spacing: 1px;
-  padding: 5px 12px;
-  border-radius: 4px;
-  border: 1.5px solid #ffffff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 .op-brand-title h1 {
   font-size: 15px;
