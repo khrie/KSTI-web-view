@@ -26,12 +26,24 @@ Aplikasi web terpadu untuk **Operator Cockpit**, **Layar Proyektor Penonton (Dis
      - **Winner**: Panggung selebrasi pemenang otomatis atau manual.
      - **Title Screen**: Layar pembuka resmi KSTI 2026 SAR Nasional.
 
-3. **Perekaman Kamera Otomatis & Manual**
-   - Perekaman video kamera lokal arena (`MediaRecorder API`).
+3. **Kamera Tanpa Kabel (Wireless) & Fitur VAR YouTube Live**
+   - **2 Opsi Kamera Nirkabel Smartphone**:
+     - **Opsi 1 (Utama)**: *Link to Windows* (Phone Link / Connected Camera bawaan Windows).
+     - **Opsi 2 (Cadangan)**: *Iriun Webcam* (kamera Wi-Fi cepat untuk Android & iOS).
+     - Pendeteksian otomatis status perangkat (*Terhubung/Belum*) dan tombol sekali klik untuk berpindah kamera saat lomba.
+   - **Sistem VAR & DVR Mirip YouTube Live**:
+     - Linimasa video pertandingan yang dapat dimundurkan (*rewind*) kapan saja untuk review juri (misal: `-5s`, `-15s`, `-30s`).
+     - Badge status: `🔴 LIVE` saat real-time, dan berubah menjadi indikator timestamp abu-abu `⚪ -00:15` saat dimundurkan.
+     - **Kembali ke LIVE Instan**: Menggeser slider ke detik terbaru atau mengeklik tombol `LIVE` langsung mengembalikan tayangan ke siaran langsung tanpa jeda.
+     - Fitur evaluasi juri: *Slow-motion* (`0.25x`, `0.5x`, `1.0x`), lompat frame (`-1s`, `+1s`, `-5s`, `+5s`), serta watermark `🔴 VAR REVIEW`.
+     - Sinkronisasi VAR antara Panel Operator dan Layar Proyektor Penonton.
+
+4. **Perekaman Kamera Otomatis & Manual**
+   - Perekaman video kamera lokal/nirkabel arena (`MediaRecorder API`).
    - Otomatis mulai merekam saat Timer Lomba berjalan dan otomatis berhenti serta tersimpan saat Finish dicentang atau waktu berakhir.
    - File rekaman otomatis tersimpan ke folder lokal `recordings/` dengan metadata tim, sesi percobaan, skor, dan waktu tempuh.
 
-4. **Server & Portal Rekaman Video LAN (`recordings.html` & `server.py`)**
+5. **Server & Portal Rekaman Video LAN (`recordings.html` & `server.py`)**
    - Server lokal ringan berbasis Python standard library (`server.py`).
    - Dukungan *HTTP 206 Partial Content (Range Request)* untuk kelancaran *scrubbing* dan *seeking* video di semua browser.
    - Portal web responsif untuk juri/panitia memeriksa video rekaman dari HP, tablet, atau laptop lain dalam satu jaringan Wi-Fi/LAN yang sama:
@@ -81,6 +93,7 @@ Setelah server aktif, terminal akan menampilkan alamat URL akses lokal dan LAN:
 │   ├── arena.js                   # Visualisasi SVG denah arena SAR
 │   ├── broadcast_renderer.js      # Generator HTML scene proyektor
 │   ├── display.js                 # Kontrol layar proyektor
+│   ├── dvr.js                     # Engine YouTube Live DVR & VAR
 │   ├── operator.js                # Logika penilaian, timer & perekaman
 │   └── state.js                   # State management & rumus skor
 ├── recordings/                    # Folder penyimpanan file video rekaman

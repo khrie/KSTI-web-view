@@ -617,16 +617,174 @@
     });
   }
 
+  // -------------------- WIRELESS CAMERA (LINK TO WINDOWS & IRIUN WEBCAM) --------------------
+  let detectedWirelessDevices = {
+    linkToWindows: null,
+    iriun: null,
+    all: []
+  };
+
+  const badgeLinkToWindowsStatus = document.getElementById('badgeLinkToWindowsStatus');
+  const lblLinkToWindowsDevice = document.getElementById('lblLinkToWindowsDevice');
+  const btnSelectLinkToWindows = document.getElementById('btnSelectLinkToWindows');
+  const btnToggleGuideLinkToWindows = document.getElementById('btnToggleGuideLinkToWindows');
+  const guideLinkToWindows = document.getElementById('guideLinkToWindows');
+  const boxOptLinkToWindows = document.getElementById('boxOptLinkToWindows');
+
+  const badgeIriunStatus = document.getElementById('badgeIriunStatus');
+  const lblIriunDevice = document.getElementById('lblIriunDevice');
+  const btnSelectIriun = document.getElementById('btnSelectIriun');
+  const btnToggleGuideIriun = document.getElementById('btnToggleGuideIriun');
+  const guideIriun = document.getElementById('guideIriun');
+  const boxOptIriun = document.getElementById('boxOptIriun');
+
+  const btnQuickLinkToWindows = document.getElementById('btnQuickLinkToWindows');
+  const btnQuickIriun = document.getElementById('btnQuickIriun');
+  const opQuickCamStatusBadge = document.getElementById('opQuickCamStatusBadge');
+
+  if (btnToggleGuideLinkToWindows && guideLinkToWindows) {
+    btnToggleGuideLinkToWindows.addEventListener('click', () => {
+      const show = guideLinkToWindows.style.display === 'none';
+      guideLinkToWindows.style.display = show ? 'block' : 'none';
+      btnToggleGuideLinkToWindows.textContent = show ? 'Tutup Petunjuk' : 'Petunjuk Hubungkan';
+    });
+  }
+
+  if (btnToggleGuideIriun && guideIriun) {
+    btnToggleGuideIriun.addEventListener('click', () => {
+      const show = guideIriun.style.display === 'none';
+      guideIriun.style.display = show ? 'block' : 'none';
+      btnToggleGuideIriun.textContent = show ? 'Tutup Petunjuk' : 'Petunjuk Hubungkan';
+    });
+  }
+
+  function applyCameraSelection(wirelessOption, deviceObj) {
+    store.setState((prev) => {
+      const next = JSON.parse(JSON.stringify(prev));
+      next.camera.wirelessOption = wirelessOption;
+      if (deviceObj) {
+        next.camera.deviceId = deviceObj.deviceId;
+        next.camera.label = deviceObj.label || 'Kamera Nirkabel';
+      }
+      return next;
+    });
+  }
+
+  if (btnSelectLinkToWindows) {
+    btnSelectLinkToWindows.addEventListener('click', () => {
+      if (detectedWirelessDevices.linkToWindows) {
+        applyCameraSelection('link_to_windows', detectedWirelessDevices.linkToWindows);
+      } else {
+        if (guideLinkToWindows) guideLinkToWindows.style.display = 'block';
+        applyCameraSelection('link_to_windows', null);
+        alert('Kamera Link to Windows belum terdeteksi. Silakan aktifkan Phone Link di PC dan Link to Windows di smartphone pada Wi-Fi yang sama.');
+      }
+    });
+  }
+
+  if (btnQuickLinkToWindows) {
+    btnQuickLinkToWindows.addEventListener('click', () => {
+      if (detectedWirelessDevices.linkToWindows) {
+        applyCameraSelection('link_to_windows', detectedWirelessDevices.linkToWindows);
+      } else {
+        applyCameraSelection('link_to_windows', null);
+        alert('Kamera Link to Windows belum terdeteksi. Buka Tab 3 untuk petunjuk koneksi nirkabel.');
+      }
+    });
+  }
+
+  if (btnSelectIriun) {
+    btnSelectIriun.addEventListener('click', () => {
+      if (detectedWirelessDevices.iriun) {
+        applyCameraSelection('iriun', detectedWirelessDevices.iriun);
+      } else {
+        if (guideIriun) guideIriun.style.display = 'block';
+        applyCameraSelection('iriun', null);
+        alert('Iriun Webcam belum terdeteksi. Silakan buka aplikasi Iriun Webcam di HP dan PC pada Wi-Fi yang sama.');
+      }
+    });
+  }
+
+  if (btnQuickIriun) {
+    btnQuickIriun.addEventListener('click', () => {
+      if (detectedWirelessDevices.iriun) {
+        applyCameraSelection('iriun', detectedWirelessDevices.iriun);
+      } else {
+        applyCameraSelection('iriun', null);
+        alert('Iriun Webcam belum terdeteksi. Buka Tab 3 untuk petunjuk koneksi nirkabel.');
+      }
+    });
+  }
+
   async function refreshVideoDevices() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) return;
     try {
       await navigator.mediaDevices.getUserMedia({ video: true, audio: false }).catch(() => {});
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+      detectedWirelessDevices.all = videoDevices;
+
+      let ltw = null;
+      let iriun = null;
+
+      for (const d of videoDevices) {
+        const lbl = (d.label || '').toLowerCase();
+        if (lbl.includes('iriun')) {
+          iriun = d;
+        } else if (
+          lbl.includes('link to windows') ||
+          lbl.includes('phone link') ||
+          lbl.includes('connected camera') ||
+          lbl.includes('mobile device') ||
+          lbl.includes('ponsel') ||
+          (lbl.includes('windows') && lbl.includes('virtual'))
+        ) {
+          ltw = d;
+        }
+      }
+
+      detectedWirelessDevices.linkToWindows = ltw;
+      detectedWirelessDevices.iriun = iriun;
+
+      // Update Link to Windows status
+      if (badgeLinkToWindowsStatus) {
+        if (ltw) {
+          badgeLinkToWindowsStatus.textContent = 'TERHUBUNG (Siap)';
+          badgeLinkToWindowsStatus.className = 'op-wopt-badge badge-detected';
+        } else {
+          badgeLinkToWindowsStatus.textContent = 'BELUM TERDETEKSI';
+          badgeLinkToWindowsStatus.className = 'op-wopt-badge badge-searching';
+        }
+      }
+      if (lblLinkToWindowsDevice) {
+        lblLinkToWindowsDevice.textContent = ltw ? ltw.label : 'Belum terdeteksi - Aktifkan Phone Link / Connected Camera';
+      }
+
+      // Update Iriun Webcam status
+      if (badgeIriunStatus) {
+        if (iriun) {
+          badgeIriunStatus.textContent = 'TERHUBUNG (Siap)';
+          badgeIriunStatus.className = 'op-wopt-badge badge-detected';
+        } else {
+          badgeIriunStatus.textContent = 'BELUM TERDETEKSI';
+          badgeIriunStatus.className = 'op-wopt-badge badge-searching';
+        }
+      }
+      if (lblIriunDevice) {
+        lblIriunDevice.textContent = iriun ? iriun.label : 'Belum terdeteksi - Jalankan Iriun Webcam di HP & PC';
+      }
+
+      // Populate Manual Camera Dropdown
       const opts = [
-        `<option value="">Kamera Lokal Default</option>`,
-        ...videoDevices.map((d, i) => `<option value="${d.deviceId}">${d.label || 'Kamera ' + (i + 1)}</option>`)
+        `<option value="">Kamera Default Sistem</option>`,
+        ...videoDevices.map((d, i) => {
+          let extra = '';
+          if (ltw && d.deviceId === ltw.deviceId) extra = ' [Opsi 1: Link to Windows]';
+          if (iriun && d.deviceId === iriun.deviceId) extra = ' [Opsi 2: Iriun Cadangan]';
+          return `<option value="${d.deviceId}">${d.label || 'Kamera ' + (i + 1)}${extra}</option>`;
+        })
       ].join('');
+
       if (selSingleCamDevice) {
         const st = store.getState();
         selSingleCamDevice.innerHTML = opts;
@@ -634,7 +792,177 @@
           selSingleCamDevice.value = st.camera.deviceId;
         }
       }
+
+      // Auto-bind device based on user preference
+      const st = store.getState();
+      const chosenOpt = (st.camera && st.camera.wirelessOption) || 'link_to_windows';
+      if (chosenOpt === 'link_to_windows' && ltw && st.camera.deviceId !== ltw.deviceId) {
+        store.setState((prev) => {
+          const next = JSON.parse(JSON.stringify(prev));
+          next.camera.deviceId = ltw.deviceId;
+          next.camera.label = ltw.label;
+          return next;
+        });
+      } else if (chosenOpt === 'iriun' && iriun && st.camera.deviceId !== iriun.deviceId) {
+        store.setState((prev) => {
+          const next = JSON.parse(JSON.stringify(prev));
+          next.camera.deviceId = iriun.deviceId;
+          next.camera.label = iriun.label;
+          return next;
+        });
+      }
     } catch (e) {}
+  }
+
+  if (navigator.mediaDevices && navigator.mediaDevices.ondevicechange !== undefined) {
+    navigator.mediaDevices.ondevicechange = refreshVideoDevices;
+  }
+
+  // -------------------- OPERATOR VAR & YOUTUBE LIVE DVR CONTROLLER --------------------
+  const btnOpReturnLive = document.getElementById('btnOpReturnLive');
+  const btnOpReturnLiveBig = document.getElementById('btnOpReturnLiveBig');
+  const lblOpLiveText = document.getElementById('lblOpLiveText');
+  const lblOpVarStatus = document.getElementById('lblOpVarStatus');
+  const btnOpRewind5 = document.getElementById('btnOpRewind5');
+  const btnOpRewind15 = document.getElementById('btnOpRewind15');
+  const btnOpRewind30 = document.getElementById('btnOpRewind30');
+  const btnOpSpeed025 = document.getElementById('btnOpSpeed025');
+  const btnOpSpeed05 = document.getElementById('btnOpSpeed05');
+  const btnOpSpeed1 = document.getElementById('btnOpSpeed1');
+  const opVarScrubberSlider = document.getElementById('opVarScrubberSlider');
+  const opScrubberPlayed = document.getElementById('opScrubberPlayed');
+  const opScrubberHandle = document.getElementById('opScrubberHandle');
+  const chkVarSyncDisplay = document.getElementById('chkVarSyncDisplay');
+
+  let isOpDraggingScrubber = false;
+
+  if (btnOpReturnLive) {
+    btnOpReturnLive.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.returnToLive(true);
+      }
+    });
+  }
+  if (btnOpReturnLiveBig) {
+    btnOpReturnLiveBig.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.returnToLive(true);
+      }
+    });
+  }
+
+  if (btnOpRewind5) {
+    btnOpRewind5.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.stepSeconds(-5, true);
+      }
+    });
+  }
+  if (btnOpRewind15) {
+    btnOpRewind15.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.stepSeconds(-15, true);
+      }
+    });
+  }
+  if (btnOpRewind30) {
+    btnOpRewind30.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.stepSeconds(-30, true);
+      }
+    });
+  }
+
+  if (btnOpSpeed025) {
+    btnOpSpeed025.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.setPlaybackRate(0.25, true);
+      }
+    });
+  }
+  if (btnOpSpeed05) {
+    btnOpSpeed05.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.setPlaybackRate(0.5, true);
+      }
+    });
+  }
+  if (btnOpSpeed1) {
+    btnOpSpeed1.addEventListener('click', () => {
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.setPlaybackRate(1.0, true);
+      }
+    });
+  }
+
+  if (opVarScrubberSlider) {
+    opVarScrubberSlider.addEventListener('mousedown', () => { isOpDraggingScrubber = true; });
+    opVarScrubberSlider.addEventListener('touchstart', () => { isOpDraggingScrubber = true; });
+    opVarScrubberSlider.addEventListener('input', (e) => {
+      const val = Number(e.target.value);
+      if (opScrubberPlayed) opScrubberPlayed.style.width = `${val}%`;
+      if (opScrubberHandle) opScrubberHandle.style.left = `${val}%`;
+    });
+    opVarScrubberSlider.addEventListener('change', (e) => {
+      isOpDraggingScrubber = false;
+      const val = Number(e.target.value);
+      if (window.KSTIDvr && window.KSTIDvr.engine) {
+        window.KSTIDvr.engine.seekToFraction(val / 100, true);
+      }
+    });
+    opVarScrubberSlider.addEventListener('mouseup', () => { isOpDraggingScrubber = false; });
+    opVarScrubberSlider.addEventListener('touchend', () => { isOpDraggingScrubber = false; });
+  }
+
+  if (chkVarSyncDisplay) {
+    chkVarSyncDisplay.addEventListener('change', (e) => {
+      store.setState((prev) => {
+        const next = JSON.parse(JSON.stringify(prev));
+        next.camera.varSyncToDisplay = Boolean(e.target.checked);
+        return next;
+      });
+    });
+  }
+
+  if (window.KSTIDvr && window.KSTIDvr.engine) {
+    window.KSTIDvr.engine.subscribe((dvrState) => {
+      const { isLive, durationSec, seekOffsetSec, currentPosSec, playbackRate } = dvrState;
+      const total = durationSec || 1;
+
+      if (isLive) {
+        if (btnOpReturnLive) btnOpReturnLive.classList.add('is-live');
+        if (lblOpLiveText) lblOpLiveText.textContent = 'LIVE';
+        if (lblOpVarStatus) lblOpVarStatus.textContent = 'LIVE (Real-time)';
+        if (btnOpReturnLiveBig) btnOpReturnLiveBig.style.display = 'none';
+
+        if (!isOpDraggingScrubber && opVarScrubberSlider) {
+          opVarScrubberSlider.value = 100;
+          if (opScrubberPlayed) opScrubberPlayed.style.width = '100%';
+          if (opScrubberHandle) opScrubberHandle.style.left = '100%';
+        }
+      } else {
+        if (btnOpReturnLive) btnOpReturnLive.classList.remove('is-live');
+        const offsetFormatted = window.KSTIDvr.formatTimeMMSS(seekOffsetSec);
+        if (lblOpLiveText) lblOpLiveText.textContent = `-${offsetFormatted}`;
+        if (lblOpVarStatus) {
+          const spdText = playbackRate < 1.0 ? ` [Kecepatan ${playbackRate}x]` : '';
+          lblOpVarStatus.textContent = `VAR REVIEW (-${offsetFormatted})${spdText}`;
+        }
+        if (btnOpReturnLiveBig) btnOpReturnLiveBig.style.display = 'inline-block';
+
+        if (!isOpDraggingScrubber && opVarScrubberSlider) {
+          const frac = Math.max(0, Math.min(1, currentPosSec / total));
+          const pct = (frac * 100).toFixed(1);
+          opVarScrubberSlider.value = pct;
+          if (opScrubberPlayed) opScrubberPlayed.style.width = `${pct}%`;
+          if (opScrubberHandle) opScrubberHandle.style.left = `${pct}%`;
+        }
+      }
+
+      if (btnOpSpeed025) btnOpSpeed025.classList.toggle('active', Math.abs(playbackRate - 0.25) < 0.05);
+      if (btnOpSpeed05) btnOpSpeed05.classList.toggle('active', Math.abs(playbackRate - 0.5) < 0.05);
+      if (btnOpSpeed1) btnOpSpeed1.classList.toggle('active', Math.abs(playbackRate - 1.0) < 0.05);
+    });
   }
 
   if (btnRefreshWebcams) {
@@ -1690,6 +2018,31 @@
 
     if (selSingleCamMode && state.camera) {
       selSingleCamMode.value = state.camera.mode || 'webcam';
+    }
+
+    // Update Wireless Camera selection UI
+    const chosenWireless = (state.camera && state.camera.wirelessOption) || 'link_to_windows';
+    if (boxOptLinkToWindows) boxOptLinkToWindows.classList.toggle('opt-selected', chosenWireless === 'link_to_windows');
+    if (boxOptIriun) boxOptIriun.classList.toggle('opt-selected', chosenWireless === 'iriun');
+
+    if (opQuickCamStatusBadge) {
+      if (chosenWireless === 'link_to_windows') {
+        opQuickCamStatusBadge.textContent = state.camera.label ? `Aktif: ${state.camera.label}` : 'Aktif: Link to Windows';
+        opQuickCamStatusBadge.style.color = '#38bdf8';
+        opQuickCamStatusBadge.style.borderColor = '#0284c7';
+      } else if (chosenWireless === 'iriun') {
+        opQuickCamStatusBadge.textContent = state.camera.label ? `Aktif: ${state.camera.label}` : 'Aktif: Iriun (Cadangan)';
+        opQuickCamStatusBadge.style.color = '#fde047';
+        opQuickCamStatusBadge.style.borderColor = '#eab308';
+      } else {
+        opQuickCamStatusBadge.textContent = state.camera.label || 'Kamera Default';
+        opQuickCamStatusBadge.style.color = '#cbd5e1';
+        opQuickCamStatusBadge.style.borderColor = '#475569';
+      }
+    }
+
+    if (chkVarSyncDisplay && state.camera) {
+      chkVarSyncDisplay.checked = state.camera.varSyncToDisplay !== false;
     }
 
     // Populate Dropdowns (1 Entry Per Team, No Urutan prefix)

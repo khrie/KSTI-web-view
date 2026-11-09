@@ -249,7 +249,19 @@ const DEFAULT_STATE = {
   camera: {
     mode: 'webcam',
     deviceId: '',
-    label: 'Kamera Arena Lomba'
+    label: 'Kamera Arena Lomba',
+    wirelessOption: 'link_to_windows',
+    linkToWindowsDeviceId: '',
+    linkToWindowsLabel: '',
+    iriunDeviceId: '',
+    iriunLabel: '',
+    varSyncToDisplay: true,
+    varState: {
+      isLive: true,
+      seekOffsetSec: 0,
+      playbackRate: 1.0,
+      isPaused: false
+    }
   },
 
   scoring: createEmptyScoringFor('team_1', 0, 'run_1'),
@@ -562,7 +574,9 @@ class KSTIStateStore {
       activeRun: Object.assign({}, base.activeRun, partial.activeRun || {}),
       winner: Object.assign({}, base.winner, partial.winner || {}),
       banners: Object.assign({}, base.banners, partial.banners || {}),
-      camera: Object.assign({}, base.camera, partial.camera || {}),
+      camera: Object.assign({}, base.camera, partial.camera || {}, {
+        varState: Object.assign({}, base.camera.varState, (partial.camera && partial.camera.varState) || {})
+      }),
       scoring: Object.assign({}, base.scoring, partial.scoring || {}, {
         missions: Object.assign({}, base.scoring.missions, (partial.scoring && partial.scoring.missions) || {})
       }),

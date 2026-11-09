@@ -91,9 +91,73 @@ function renderSingleCameraSlotHTML(state) {
   }
 
   return `
-    <div class="bc-cam-webcam-wrap" data-cam-slot="main" data-device-id="${camCfg.deviceId || ''}">
-      <video class="bc-cam-video" autoplay playsinline muted></video>
-      <div class="bc-cam-status-msg">Menghubungkan kamera lokal...</div>
+    <div class="bc-cam-dvr-player bc-cam-webcam-wrap" data-cam-slot="main" data-device-id="${camCfg.deviceId || ''}">
+      <!-- Live Video Feed -->
+      <video class="bc-cam-video bc-cam-video-live" autoplay playsinline muted></video>
+
+      <!-- Replay Video for DVR / VAR Review -->
+      <video class="bc-cam-video bc-cam-video-replay" playsinline muted style="display:none;"></video>
+
+      <!-- Floating VAR Review Badge Watermark -->
+      <div class="bc-cam-var-badge" style="display:none;">
+        <span class="bc-var-pulse-dot"></span>
+        <span class="bc-var-badge-text">VAR REVIEW</span>
+        <span class="bc-var-offset-text">-00:15</span>
+        <span class="bc-var-speed-tag" style="display:none;">0.5x</span>
+      </div>
+
+      <div class="bc-cam-status-msg">Menghubungkan kamera arena...</div>
+
+      <!-- YouTube Live DVR Control Bar -->
+      <div class="bc-yt-dvr-bar">
+        <div class="bc-yt-scrubber-track">
+          <div class="bc-yt-scrubber-bg"></div>
+          <div class="bc-yt-scrubber-buffer"></div>
+          <div class="bc-yt-scrubber-played"></div>
+          <input type="range" class="bc-yt-scrubber-slider" min="0" max="100" value="100" step="0.2" aria-label="DVR Timeline" />
+          <div class="bc-yt-scrubber-handle"></div>
+        </div>
+
+        <div class="bc-yt-controls-row">
+          <div class="bc-yt-left-group">
+            <button type="button" class="bc-yt-btn bc-yt-play-pause-btn" title="Play / Pause Replay">
+              <svg class="icon-play" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="icon-pause" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+
+            <!-- YouTube Red LIVE Indicator Badge -->
+            <button type="button" class="bc-yt-live-pill is-live" title="Kembali ke LIVE">
+              <span class="bc-yt-live-dot"></span>
+              <span class="bc-yt-live-label">LIVE</span>
+            </button>
+
+            <div class="bc-yt-time-display">
+              <span class="bc-yt-current-time">LIVE</span>
+              <span class="bc-yt-time-sep">/</span>
+              <span class="bc-yt-duration">00:00</span>
+            </div>
+          </div>
+
+          <div class="bc-yt-right-group">
+            <div class="bc-yt-step-group">
+              <button type="button" class="bc-yt-speed-btn" data-step="-5" title="Mundur 5s">-5s</button>
+              <button type="button" class="bc-yt-speed-btn" data-step="-1" title="Mundur 1s">-1s</button>
+              <button type="button" class="bc-yt-speed-btn" data-step="1" title="Maju 1s">+1s</button>
+              <button type="button" class="bc-yt-speed-btn" data-step="5" title="Maju 5s">+5s</button>
+            </div>
+
+            <div class="bc-yt-speed-group">
+              <button type="button" class="bc-yt-speed-btn" data-yt-speed="0.25">0.25x</button>
+              <button type="button" class="bc-yt-speed-btn" data-yt-speed="0.5">0.5x</button>
+              <button type="button" class="bc-yt-speed-btn active" data-yt-speed="1">1.0x</button>
+            </div>
+
+            <button type="button" class="bc-yt-return-live-btn" style="display:none;">
+              Kembali ke LIVE
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -696,21 +760,25 @@ async function hydrateWebcamSlots(rootEl) {
 
   for (const wrap of wraps) {
     const deviceId = wrap.getAttribute('data-device-id') || '';
-    const videoEl = wrap.querySelector('video');
+    const videoLive = wrap.querySelector('.bc-cam-video-live') || wrap.querySelector('video:not(.bc-cam-video-replay)');
     const msgEl = wrap.querySelector('.bc-cam-status-msg');
-    if (!videoEl) continue;
+    if (!videoLive) continue;
 
     try {
       const stream = await getOrRequestStream(deviceId);
-      if (videoEl.srcObject !== stream) {
-        videoEl.srcObject = stream;
-        videoEl.play().catch(() => {});
+      if (videoLive.srcObject !== stream) {
+        videoLive.srcObject = stream;
+        videoLive.play().catch(() => {});
       }
       if (msgEl) msgEl.style.display = 'none';
+
+      if (window.KSTIDvr && typeof window.KSTIDvr.attachToPlayer === 'function') {
+        wrap._dvrPlayer = window.KSTIDvr.attachToPlayer(wrap, stream);
+      }
     } catch (err) {
       if (msgEl) {
         msgEl.style.display = 'flex';
-        msgEl.textContent = 'Menunggu izin kamera lokal...';
+        msgEl.textContent = 'Menunggu izin kamera arena...';
       }
     }
   }
