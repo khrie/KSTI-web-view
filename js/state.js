@@ -185,12 +185,12 @@ const DEFAULT_STATE = {
   activeScene: 'live_match',
   autoSyncLiveScoreToTrial: true,
 
-  // Separate Preparation Timer (3 Menit / 180s) & Match Timer (5 Menit / 300s)
+  // Separate Preparation Timer (5 Menit / 300s) & Match Timer (5 Menit / 300s)
   activeTimerType: 'match',
   prepTimer: {
-    durationSec: 180,
-    remainingSec: 180,
-    baseRemainingSec: 180,
+    durationSec: 300,
+    remainingSec: 300,
+    baseRemainingSec: 300,
     isRunning: false,
     startedAt: null
   },

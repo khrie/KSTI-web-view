@@ -10,7 +10,7 @@
   <!-- TOP STICKY HEADER WITH ACTIVE TEAM BAR -->
   <header class="op-header">
     <div class="op-brand">
-      <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="op-brand-logo" />
+      <div class="op-brand-emblem">KSTI 2026</div>
       <div class="op-brand-title">
         <h1>KSTI 2026 - SEARCH AND RESCUE (SAR)</h1>
         <p>Panel Kontrol Broadcast, Skor 12 Tim &amp; Pengundi Korban - Hall Robotika ITS</p>
@@ -574,10 +574,10 @@
         </div>
       </div>
 
-      <!-- 2. TIMER PREPARATION (3 MENIT / 180 DETIK) -->
+      <!-- 2. TIMER PREPARATION (5 MENIT / 300 DETIK) -->
       <div class="op-card op-timer-card-prep" style="padding:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <span style="font-size:12px;font-weight:800;color:#0284c7;">TIMER PREPARATION (3 MENIT)</span>
+          <span style="font-size:12px;font-weight:800;color:#0284c7;">TIMER PREPARATION (5 MENIT)</span>
           <span id="opPrepStatusBadge" style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:3px;background:#e0f2fe;color:#0369a1;">STANDBY</span>
         </div>
 
@@ -585,19 +585,19 @@
           <div>
             <div style="font-size:10px;color:#bae6fd;font-weight:700;">SISA WAKTU PREP</div>
             <div style="display:flex;align-items:baseline;gap:8px;">
-              <div id="opPrepTimerDigits" class="op-timer-num" style="color:#38bdf8;">180</div>
-              <div id="opPrepTimerMMSS" style="font-family:monospace;font-size:15px;font-weight:700;color:#e0f2fe;">(03:00)</div>
+              <div id="opPrepTimerDigits" class="op-timer-num" style="color:#38bdf8;">300</div>
+              <div id="opPrepTimerMMSS" style="font-family:monospace;font-size:15px;font-weight:700;color:#e0f2fe;">(05:00)</div>
             </div>
           </div>
           <div style="text-align:right;">
             <div style="font-size:10px;color:#bae6fd;font-weight:700;">TERPAKAI</div>
-            <div id="opPrepElapsedDigits" style="font-family:monospace;font-size:16px;font-weight:700;color:#ffffff;">0s / 180s</div>
+            <div id="opPrepElapsedDigits" style="font-family:monospace;font-size:16px;font-weight:700;color:#ffffff;">0s / 300s</div>
           </div>
         </div>
 
         <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:6px;margin-top:8px;">
           <button type="button" id="btnPrepStartPause" class="btn btn-blue">START PREP</button>
-          <button type="button" id="btnPrepReset" class="btn btn-outline" style="font-size:11.5px;padding:6px;">Reset 180s</button>
+          <button type="button" id="btnPrepReset" class="btn btn-outline" style="font-size:11.5px;padding:6px;">Reset 300s</button>
         </div>
       </div>
 

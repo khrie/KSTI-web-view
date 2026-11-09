@@ -72,9 +72,9 @@
 
     if (options.resetTimers) {
       next.prepTimer = {
-        durationSec: 180,
-        remainingSec: 180,
-        baseRemainingSec: 180,
+        durationSec: 300,
+        remainingSec: 300,
+        baseRemainingSec: 300,
         isRunning: false,
         startedAt: null
       };
@@ -326,7 +326,7 @@
     }
   }
 
-  // -------------------- SEPARATE TIMERS: PREPARATION (180s) & LOMBA (300s) --------------------
+  // -------------------- SEPARATE TIMERS: PREPARATION (300s / 5 MENIT) & LOMBA (300s / 5 MENIT) --------------------
   const btnPrepStartPause = document.getElementById('btnPrepStartPause');
   const btnPrepReset = document.getElementById('btnPrepReset');
   const btnMatchStartPause = document.getElementById('btnMatchStartPause');
@@ -340,7 +340,7 @@
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
           if (next.prepTimer.remainingSec <= 0) {
-            next.prepTimer.remainingSec = 180;
+            next.prepTimer.remainingSec = 300;
           }
           next.prepTimer.isRunning = true;
           next.prepTimer.startedAt = Date.now();
@@ -365,9 +365,9 @@
       store.setState((prev) => {
         const next = JSON.parse(JSON.stringify(prev));
         next.prepTimer = {
-          durationSec: 180,
-          remainingSec: 180,
-          baseRemainingSec: 180,
+          durationSec: 300,
+          remainingSec: 300,
+          baseRemainingSec: 300,
           isRunning: false,
           startedAt: null
         };
@@ -470,7 +470,7 @@
     let prepChanged = false;
     let matchChanged = false;
     let matchExpiredNow = false;
-    let newPrepRem = st.prepTimer ? st.prepTimer.remainingSec : 180;
+    let newPrepRem = st.prepTimer ? st.prepTimer.remainingSec : 300;
     let newMatchRem = st.matchTimer ? st.matchTimer.remainingSec : 300;
 
     if (st.prepTimer && st.prepTimer.isRunning && st.prepTimer.startedAt) {
@@ -1867,7 +1867,7 @@
 
   // -------------------- FAST TIMER & SCORE DOM UPDATER --------------------
   function syncFastTimerAndScoreDOM(state) {
-    const prepTimer = state.prepTimer || { durationSec: 180, remainingSec: 180, isRunning: false };
+    const prepTimer = state.prepTimer || { durationSec: 300, remainingSec: 300, isRunning: false };
     const matchTimer = state.matchTimer || { durationSec: 300, remainingSec: 300, isRunning: false };
 
     // 1. Preparation Timer Card
@@ -1878,7 +1878,7 @@
 
     if (prepDigitsEl) prepDigitsEl.textContent = window.formatTimerDigits(prepTimer.remainingSec);
     if (prepMMSSEl) prepMMSSEl.textContent = `(${window.formatTimerMMSS(prepTimer.remainingSec)})`;
-    if (prepElapsedEl) prepElapsedEl.textContent = `${Math.max(0, 180 - prepTimer.remainingSec)}s / 180s`;
+    if (prepElapsedEl) prepElapsedEl.textContent = `${Math.max(0, 300 - prepTimer.remainingSec)}s / 300s`;
     if (prepBadgeEl) {
       if (prepTimer.isRunning) {
         prepBadgeEl.textContent = 'PREP BERJALAN';

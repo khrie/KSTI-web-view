@@ -51,7 +51,7 @@
   function updateTimerAndLiveScoreDOM(state) {
     if (!viewport || !state) return;
 
-    const prepRem = computeLiveRemaining(state.prepTimer, 180);
+    const prepRem = computeLiveRemaining(state.prepTimer, 300);
     const matchRem = computeLiveRemaining(state.matchTimer, 300);
 
     if (state.prepTimer) state.prepTimer.remainingSec = prepRem;

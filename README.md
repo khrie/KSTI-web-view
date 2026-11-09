@@ -8,7 +8,7 @@ Aplikasi web terpadu untuk **Operator Cockpit**, **Layar Proyektor Penonton (Dis
 
 1. **Panel Kontrol Operator & Juri (`index.html`)**
    - **Checklist Penilaian Real-Time**: Penilaian otomatis sesuai Buku Panduan SAR KSTI 2026 (Keluar Wilayah START, 5 Misi Penyelamatan K-1 s/d K-5 menuju SZ-1 s/d SZ-5, Rintangan R1 dan R2, serta Poin Finish).
-   - **Timer Terpisah**: Timer Persiapan (3 menit / 180s) dan Timer Lomba (5 menit / 300s) dengan akurasi tinggi serta pencatatan Retry.
+   - **Timer Terpisah**: Timer Persiapan (5 menit / 300s) dan Timer Lomba (5 menit / 300s) dengan akurasi tinggi serta pencatatan Retry.
    - **Otomatisasi Finish & Rumus Bonus**: Saat Finish dicentang, Timer Lomba otomatis berhenti seketika dan rumus bonus dihitung akurat:
      $$\text{Skor Akhir} = \text{round}\left(\text{Skor Misi} \times \frac{300}{\text{Waktu Selesai (detik)}}\right)$$
    - **Pengundi Korban (Victim Randomizer)**: Pengacakan posisi korban asli dan dummy untuk Ruang K-1 (3 posisi) dan Ruang K-2 (2 posisi) dengan visualisasi pada peta arena interaktif.

@@ -34,11 +34,14 @@ function renderBroadcastHeader(state) {
   return `
     <header class="bc-header">
       <div class="bc-header-left">
-        <img src="assets/partner_logos.png" alt="Kemdiktisaintek LPDP ITS KSTI 26" class="bc-partner-strip" />
+        <div class="bc-header-title-text">
+          <span class="bc-htt-kicker">KONTES ROBOT SEARCH AND RESCUE</span>
+          <span class="bc-htt-main">KSTI 2026</span>
+        </div>
       </div>
       <div class="bc-header-center">
         <div class="bc-ksti-pill-group">
-          <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="bc-ksti-mini-logo" />
+          <div class="bc-brand-text-badge">KSTI 26</div>
           <div class="bc-event-meta">
             <span class="bc-national-badge">${banners.stageBadge || 'Tingkat Nasional'}</span>
             <span class="bc-date-row">
@@ -48,7 +51,9 @@ function renderBroadcastHeader(state) {
           </div>
         </div>
       </div>
-      <div class="bc-header-right"></div>
+      <div class="bc-header-right">
+        <span class="bc-header-venue-text">${banners.eventVenue || 'Hall Robotika ITS, Surabaya'}</span>
+      </div>
       <div class="bc-top-right-swoosh"></div>
     </header>
   `;
@@ -107,57 +112,6 @@ function renderSingleCameraSlotHTML(state) {
       </div>
 
       <div class="bc-cam-status-msg">Menghubungkan kamera arena...</div>
-
-      <!-- YouTube Live DVR Control Bar -->
-      <div class="bc-yt-dvr-bar">
-        <div class="bc-yt-scrubber-track">
-          <div class="bc-yt-scrubber-bg"></div>
-          <div class="bc-yt-scrubber-buffer"></div>
-          <div class="bc-yt-scrubber-played"></div>
-          <input type="range" class="bc-yt-scrubber-slider" min="0" max="100" value="100" step="0.2" aria-label="DVR Timeline" />
-          <div class="bc-yt-scrubber-handle"></div>
-        </div>
-
-        <div class="bc-yt-controls-row">
-          <div class="bc-yt-left-group">
-            <button type="button" class="bc-yt-btn bc-yt-play-pause-btn" title="Play / Pause Replay">
-              <svg class="icon-play" viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-              <svg class="icon-pause" viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-
-            <!-- YouTube Red LIVE Indicator Badge -->
-            <button type="button" class="bc-yt-live-pill is-live" title="Kembali ke LIVE">
-              <span class="bc-yt-live-dot"></span>
-              <span class="bc-yt-live-label">LIVE</span>
-            </button>
-
-            <div class="bc-yt-time-display">
-              <span class="bc-yt-current-time">LIVE</span>
-              <span class="bc-yt-time-sep">/</span>
-              <span class="bc-yt-duration">00:00</span>
-            </div>
-          </div>
-
-          <div class="bc-yt-right-group">
-            <div class="bc-yt-step-group">
-              <button type="button" class="bc-yt-speed-btn" data-step="-5" title="Mundur 5s">-5s</button>
-              <button type="button" class="bc-yt-speed-btn" data-step="-1" title="Mundur 1s">-1s</button>
-              <button type="button" class="bc-yt-speed-btn" data-step="1" title="Maju 1s">+1s</button>
-              <button type="button" class="bc-yt-speed-btn" data-step="5" title="Maju 5s">+5s</button>
-            </div>
-
-            <div class="bc-yt-speed-group">
-              <button type="button" class="bc-yt-speed-btn" data-yt-speed="0.25">0.25x</button>
-              <button type="button" class="bc-yt-speed-btn" data-yt-speed="0.5">0.5x</button>
-              <button type="button" class="bc-yt-speed-btn active" data-yt-speed="1">1.0x</button>
-            </div>
-
-            <button type="button" class="bc-yt-return-live-btn" style="display:none;">
-              Kembali ke LIVE
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   `;
 }
@@ -172,7 +126,7 @@ function renderLiveMatchScene(state) {
   const teamStats = window.getTeamBestStats ? window.getTeamBestStats(activeTeam, state) : { bestScore: 0, trialScores: [] };
   const calc = window.calculateSARScore(scoring, state.matchTimer);
 
-  const prepTimer = state.prepTimer || { remainingSec: 180, isRunning: false };
+  const prepTimer = state.prepTimer || { remainingSec: 300, isRunning: false };
   const matchTimer = state.matchTimer || { remainingSec: 300, isRunning: false };
   const activeTimerType = state.activeTimerType || 'match';
 
@@ -496,7 +450,7 @@ function renderBreakOrSoonScene(state, mode = 'sesaat_lagi') {
       <main class="bc-intermission-main">
         <div class="bc-intermission-left">
           <div class="bc-inter-logo-row">
-            <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="bc-inter-ksti-logo" />
+            <div class="bc-inter-brand-badge">KSTI 2026</div>
             <div class="bc-inter-date-block">
               <div class="bc-inter-nat-pill">${banners.stageBadge || 'Tingkat Nasional'}</div>
               <div class="bc-inter-date-text">
@@ -585,7 +539,7 @@ function renderSplashScene(state) {
 
       <main class="bc-splash-hero-center">
         <div class="bc-splash-hero-card">
-          <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="bc-splash-center-logo" />
+          <div class="bc-splash-center-emblem">KSTI 2026</div>
           <div class="bc-splash-kicker">KONVENSI SAINS, TEKNOLOGI, DAN INDUSTRI INDONESIA 2026</div>
           <h1 class="bc-splash-heading-hero">
             KONTES ROBOT <span class="bc-splash-year">SEARCH AND RESCUE (SAR)</span>
