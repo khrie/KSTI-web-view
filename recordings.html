@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KSTI 2026 - Search and Rescue (SAR) | Portal Rekaman Video Pertandingan (LAN)</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      background: #f1f5f9;
+      color: #0f172a;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+    }
+    .rec-shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px 20px 40px;
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .rec-shell {
+        grid-template-columns: 1fr;
+      }
+    }
+    .rec-player-stage {
+      background: #0f172a;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid #003876;
+      box-shadow: 0 10px 25px rgba(0, 40, 85, 0.12);
+    }
+    .rec-video-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rec-video-wrap video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+    .rec-player-meta {
+      padding: 14px 16px;
+      background: #ffffff;
+      border-top: 3px solid #f5b800;
+    }
+    .rec-controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #1e293b;
+      color: #f8fafc;
+      font-size: 12px;
+    }
+    .rec-speed-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .rec-speed-btn {
+      background: #334155;
+      color: #e2e8f0;
+      border: 1px solid #475569;
+      padding: 4px 9px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .rec-speed-btn.active,
+    .rec-speed-btn:hover {
+      background: #f5b800;
+      color: #002855;
+      border-color: #f5b800;
+    }
+    .rec-list-card {
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
+      border-top: 4px solid #003876;
+      border-radius: 6px;
+      padding: 14px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+    }
+    .rec-filter-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 640px) {
+      .rec-filter-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .rec-items-scroll {
+      max-height: 68vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-right: 4px;
+    }
+    .rec-item-card {
+      border: 1.5px solid #cbd5e1;
+      border-left: 5px solid #003876;
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .rec-item-card:hover {
+      background: #f0f9ff;
+      border-color: #0284c7;
+    }
+    .rec-item-card.active {
+      background: #eff6ff;
+      border-color: #003876;
+      border-left-color: #f5b800;
+      box-shadow: 0 2px 8px rgba(0, 56, 118, 0.12);
+    }
+    .rec-lan-banner {
+      max-width: 1440px;
+      margin: 14px auto 0;
+      padding: 0 20px;
+    }
+    .rec-lan-box {
+      background: #002855;
+      color: #ffffff;
+      border-left: 6px solid #f5b800;
+      border-radius: 5px;
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .rec-lan-url-pill {
+      background: #0f172a;
+      border: 1px solid #38bdf8;
+      color: #fde047;
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header class="op-header">
+    <div class="op-brand">
+      <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="op-brand-logo" />
+      <div class="op-brand-title">
+        <h1>PORTAL REKAMAN VIDEO PERTANDINGAN - SAR KSTI 2026</h1>
+        <p>Pemeriksaan Video Rekaman Kamera Arena &amp; Evaluasi Juri (Akses Lokal &amp; Jaringan LAN/Wi-Fi)</p>
+      </div>
+    </div>
+
+    <div class="op-header-actions">
+      <label class="btn btn-outline btn-sm" style="cursor:pointer;margin:0;">
+        Buka Folder Rekaman Lokal
+        <input type="file" id="inpLocalFolderFiles" webkitdirectory directory multiple accept="video/*" style="display:none;" />
+      </label>
+      <button type="button" id="btnRefreshRecordings" class="btn btn-gold btn-sm">Muat Ulang Daftar Video</button>
+      <a href="index.html" class="btn btn-outline btn-sm">Panel Operator</a>
+    </div>
+  </header>
+
+  <div class="rec-lan-banner">
+    <div class="rec-lan-box">
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#fde047;text-transform:uppercase;">
+          Akses Pemeriksaan Video di Jaringan Lokal / Wi-Fi yang Sama (LAN)
+        </div>
+        <div id="recFolderInfoText" style="font-size:12.5px;color:#e2e8f0;margin-top:2px;">
+          Folder Penyimpanan: <strong>./recordings/</strong>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;color:#bae6fd;font-weight:700;">Buka dari HP / Laptop Juri (Wi-Fi Sama):</span>
+        <span id="recLanUrlDisplay" class="rec-lan-url-pill">Mendeteksi IP LAN...</span>
+        <button type="button" id="btnCopyLanUrl" class="btn btn-outline btn-sm" style="background:#fff;color:#003876;">Salin Link LAN</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="rec-shell">
+    <!-- LEFT: VIDEO PLAYER & JURY PLAYBACK CONTROLS -->
+    <section class="rec-player-stage">
+      <div class="rec-video-wrap">
+        <video id="recVideoPlayer" controls playsinline preload="metadata"></video>
+      </div>
+
+      <div class="rec-controls-bar">
+        <div class="rec-speed-group">
+          <span style="font-weight:800;color:#94a3b8;margin-right:4px;">Kecepatan Putar (Review Juri):</span>
+          <button type="button" class="rec-speed-btn" data-speed="0.25">0.25x (Slow)</button>
+          <button type="button" class="rec-speed-btn" data-speed="0.5">0.5x</button>
+          <button type="button" class="rec-speed-btn active" data-speed="1">1.0x (Normal)</button>
+          <button type="button" class="rec-speed-btn" data-speed="1.5">1.5x</button>
+          <button type="button" class="rec-speed-btn" data-speed="2">2.0x</button>
+        </div>
+
+        <div class="rec-speed-group">
+          <button type="button" class="rec-speed-btn" id="btnSeekBack5">-5s</button>
+          <button type="button" class="rec-speed-btn" id="btnSeekBack1">-1s</button>
+          <button type="button" class="rec-speed-btn" id="btnSeekFwd1">+1s</button>
+          <button type="button" class="rec-speed-btn" id="btnSeekFwd5">+5s</button>
+        </div>
+      </div>
+
+      <div class="rec-player-meta">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <div id="recActiveTrialTag" style="font-size:11px;font-weight:800;color:#0284c7;text-transform:uppercase;">
+              PILIH REKAMAN DARI DAFTAR DI SAMPING
+            </div>
+            <h2 id="recActiveTitle" style="font-size:20px;font-weight:800;color:#003876;margin:4px 0 2px;">
+              Belum Ada Video Dipilih
+            </h2>
+            <div id="recActiveSub" style="font-size:13px;color:#475569;font-weight:600;">
+              Rekaman otomatis tersimpan di dalam folder <code>recordings/</code> setiap kali pertandingan direkam.
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a id="btnDownloadActiveVideo" href="#" download class="btn btn-green btn-sm" style="display:none;">
+              Unduh File Video
+            </a>
+            <button type="button" id="btnDeleteActiveVideo" class="btn btn-red btn-sm" style="display:none;">
+              Hapus Rekaman
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT: RECORDINGS FOLDER LIST & FILTER -->
+    <aside class="rec-list-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:15px;font-weight:800;color:#003876;">Isi Folder Rekaman (<span id="recTotalCount">0</span> Video)</div>
+          <div style="font-size:11.5px;color:#64748b;">Filter berdasarkan Nama Tim atau Sesi Percobaan</div>
+        </div>
+      </div>
+
+      <div class="rec-filter-row">
+        <input type="text" id="inpFilterSearch" placeholder="Cari nama tim / file..." style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:4px;font-size:12.5px;" />
+        <select id="selFilterTrial" style="padding:7px 10px;border:1px solid #cbd5e1;border-radius:4px;font-size:12.5px;">
+          <option value="all">Semua Percobaan</option>
+          <option value="0">Percobaan 1</option>
+          <option value="1">Percobaan 2</option>
+          <option value="2">Percobaan 3</option>
+        </select>
+        <button type="button" id="btnClearFilter" class="btn btn-outline btn-sm">Reset</button>
+      </div>
+
+      <div id="recItemsContainer" class="rec-items-scroll">
+        <div style="padding:24px;text-align:center;color:#64748b;font-size:13px;">
+          Memuat daftar rekaman dari folder <code>recordings/</code>...
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    (function () {
+      const videoEl = document.getElementById('recVideoPlayer');
+      const recItemsContainer = document.getElementById('recItemsContainer');
+      const recTotalCount = document.getElementById('recTotalCount');
+      const recActiveTrialTag = document.getElementById('recActiveTrialTag');
+      const recActiveTitle = document.getElementById('recActiveTitle');
+      const recActiveSub = document.getElementById('recActiveSub');
+      const btnDownloadActiveVideo = document.getElementById('btnDownloadActiveVideo');
+      const btnDeleteActiveVideo = document.getElementById('btnDeleteActiveVideo');
+      const recLanUrlDisplay = document.getElementById('recLanUrlDisplay');
+      const recFolderInfoText = document.getElementById('recFolderInfoText');
+      const btnCopyLanUrl = document.getElementById('btnCopyLanUrl');
+      const btnRefreshRecordings = document.getElementById('btnRefreshRecordings');
+      const inpFilterSearch = document.getElementById('inpFilterSearch');
+      const selFilterTrial = document.getElementById('selFilterTrial');
+      const btnClearFilter = document.getElementById('btnClearFilter');
+      const inpLocalFolderFiles = document.getElementById('inpLocalFolderFiles');
+
+      let allRecordings = [];
+      let activeFilename = null;
+
+      function formatBytes(bytes) {
+        const b = Number(bytes) || 0;
+        if (b < 1024) return b + ' B';
+        if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+        return (b / (1024 * 1024)).toFixed(2) + ' MB';
+      }
+
+      async function loadServerInfo() {
+        try {
+          const res = await fetch('/api/info', { cache: 'no-store' });
+          if (!res.ok) throw new Error('No API');
+          const data = await res.json();
+          if (data && data.ok) {
+            recLanUrlDisplay.textContent = data.recordings_url;
+            recFolderInfoText.innerHTML = `Folder Penyimpanan Disk: <strong>${data.recordings_folder}</strong> | IP LAN Aktif: <strong>${(data.lan_ips || []).join(', ')}</strong>`;
+          }
+        } catch (err) {
+          const fallbackUrl = window.location.href;
+          recLanUrlDisplay.textContent = fallbackUrl;
+          recFolderInfoText.innerHTML = `Mode Lokal: Jalankan <strong>start_server.bat</strong> (atau <code>python server.py</code>) untuk membuka akses LAN &amp; membaca folder <code>recordings/</code> secara otomatis.`;
+        }
+      }
+
+      async function loadRecordingsFromServer() {
+        try {
+          const res = await fetch('/api/recordings', { cache: 'no-store' });
+          if (!res.ok) throw new Error('Server API belum aktif');
+          const data = await res.json();
+          if (data && data.ok && Array.isArray(data.recordings)) {
+            allRecordings = data.recordings;
+            renderRecordingsList();
+            if (!activeFilename && allRecordings.length > 0) {
+              selectRecording(allRecordings[0].filename);
+            }
+            return;
+          }
+        } catch (e) {
+          renderRecordingsList();
+        }
+      }
+
+      function getFilteredRecordings() {
+        const q = (inpFilterSearch.value || '').trim().toLowerCase();
+        const tr = selFilterTrial.value;
+        return allRecordings.filter((item) => {
+          if (tr !== 'all' && String(item.trialIndex) !== String(tr)) return false;
+          if (q) {
+            const hay = `${item.teamName} ${item.university} ${item.filename} ${item.trialLabel}`.toLowerCase();
+            if (!hay.includes(q)) return false;
+          }
+          return true;
+        });
+      }
+
+      function selectRecording(filename) {
+        const item = allRecordings.find((r) => r.filename === filename);
+        if (!item) return;
+        activeFilename = item.filename;
+        videoEl.src = item.url;
+        videoEl.playbackRate = getSelectedSpeed();
+        videoEl.play().catch(() => {});
+
+        recActiveTrialTag.textContent = `${item.trialLabel || 'Percobaan'} | Waktu Rekam: ${item.createdAt || '-'}`;
+        recActiveTitle.textContent = `${item.teamName || item.filename}`;
+        recActiveSub.innerHTML = `
+          Perguruan Tinggi: <strong>${item.university || '-'}</strong> |
+          Skor Akhir: <strong>${item.finalScore || 0} Poin</strong> (Skor Misi: ${item.rawScore || 0}, Waktu Finish: ${item.finishTimeSec || '-'}s) |
+          Ukuran File: <strong>${formatBytes(item.sizeBytes)}</strong> |
+          Nama File: <code>${item.filename}</code>
+        `;
+
+        btnDownloadActiveVideo.style.display = 'inline-flex';
+        btnDownloadActiveVideo.href = item.url;
+        btnDownloadActiveVideo.download = item.filename;
+
+        btnDeleteActiveVideo.style.display = item.isLocalFileOnly ? 'none' : 'inline-flex';
+        renderRecordingsList();
+      }
+
+      function renderRecordingsList() {
+        const filtered = getFilteredRecordings();
+        recTotalCount.textContent = String(filtered.length);
+
+        if (filtered.length === 0) {
+          recItemsContainer.innerHTML = `
+            <div style="padding:28px 16px;text-align:center;color:#64748b;font-size:13px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:4px;">
+              <strong>Belum ada file video rekaman yang ditemukan.</strong>
+              <p style="margin:6px 0 0;font-size:12px;">
+                Rekaman akan otomatis muncul di sini saat kamera merekam di Panel Operator (saat Timer Lomba berjalan atau tombol Rekam diklik).
+                Anda juga dapat menekan tombol <strong>Buka Folder Rekaman Lokal</strong> di kanan atas.
+              </p>
+            </div>
+          `;
+          return;
+        }
+
+        recItemsContainer.innerHTML = filtered
+          .map((item) => {
+            const isAct = item.filename === activeFilename;
+            return `
+              <div class="rec-item-card ${isAct ? 'active' : ''}" data-rec-file="${encodeURIComponent(item.filename)}">
+                <div style="min-width:0;flex:1;">
+                  <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                    <span class="bc-code-badge">${item.trialLabel || 'Percobaan ' + ((Number(item.trialIndex) || 0) + 1)}</span>
+                    <strong style="font-size:14px;color:#003876;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                      ${item.teamName || item.filename}
+                    </strong>
+                  </div>
+                  <div style="font-size:11.5px;color:#475569;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    ${item.university || '-'}
+                  </div>
+                  <div style="font-size:11px;color:#64748b;margin-top:3px;">
+                    ${item.createdAt || '-'} &bull; ${formatBytes(item.sizeBytes)} &bull; <code>${item.filename}</code>
+                  </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                  <div style="font-size:10px;font-weight:700;color:#64748b;">SKOR</div>
+                  <div style="font-size:18px;font-weight:800;color:#15803d;">${item.finalScore || 0}</div>
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        recItemsContainer.querySelectorAll('[data-rec-file]').forEach((card) => {
+          card.addEventListener('click', () => {
+            const fname = decodeURIComponent(card.getAttribute('data-rec-file'));
+            selectRecording(fname);
+          });
+        });
+      }
+
+      function getSelectedSpeed() {
+        const act = document.querySelector('.rec-speed-btn.active[data-speed]');
+        return act ? Number(act.getAttribute('data-speed')) || 1 : 1;
+      }
+
+      document.querySelectorAll('.rec-speed-btn[data-speed]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.rec-speed-btn[data-speed]').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const spd = Number(btn.getAttribute('data-speed')) || 1;
+          videoEl.playbackRate = spd;
+        });
+      });
+
+      document.getElementById('btnSeekBack5').addEventListener('click', () => {
+        videoEl.currentTime = Math.max(0, (videoEl.currentTime || 0) - 5);
+      });
+      document.getElementById('btnSeekBack1').addEventListener('click', () => {
+        videoEl.currentTime = Math.max(0, (videoEl.currentTime || 0) - 1);
+      });
+      document.getElementById('btnSeekFwd1').addEventListener('click', () => {
+        videoEl.currentTime = Math.min(videoEl.duration || 9999, (videoEl.currentTime || 0) + 1);
+      });
+      document.getElementById('btnSeekFwd5').addEventListener('click', () => {
+        videoEl.currentTime = Math.min(videoEl.duration || 9999, (videoEl.currentTime || 0) + 5);
+      });
+
+      if (btnDeleteActiveVideo) {
+        btnDeleteActiveVideo.addEventListener('click', async () => {
+          if (!activeFilename) return;
+          if (!confirm(`Hapus rekaman video "${activeFilename}" dari folder recordings?`)) return;
+          try {
+            const res = await fetch(`/api/recordings?file=${encodeURIComponent(activeFilename)}`, {
+              method: 'DELETE'
+            });
+            const data = await res.json();
+            if (data && data.ok) {
+              activeFilename = null;
+              videoEl.pause();
+              videoEl.removeAttribute('src');
+              videoEl.load();
+              await loadRecordingsFromServer();
+            }
+          } catch (e) {}
+        });
+      }
+
+      if (inpLocalFolderFiles) {
+        inpLocalFolderFiles.addEventListener('change', (e) => {
+          const files = Array.from(e.target.files || []).filter((f) =>
+            /\.(webm|mp4|mkv|mov|ogg)$/i.test(f.name)
+          );
+          if (files.length === 0) return;
+          allRecordings = files
+            .sort((a, b) => b.lastModified - a.lastModified)
+            .map((f) => ({
+              filename: f.name,
+              url: URL.createObjectURL(f),
+              sizeBytes: f.size,
+              createdAt: new Date(f.lastModified).toLocaleString('id-ID'),
+              teamName: f.name.replace(/\.(webm|mp4|mkv|mov|ogg)$/i, '').replace(/_/g, ' '),
+              university: 'File Folder Lokal',
+              trialIndex: f.name.includes('Percobaan_2') ? 1 : f.name.includes('Percobaan_3') ? 2 : 0,
+              trialLabel: f.name.includes('Percobaan_2')
+                ? 'Percobaan 2'
+                : f.name.includes('Percobaan_3')
+                ? 'Percobaan 3'
+                : 'Percobaan 1',
+              finalScore: 0,
+              rawScore: 0,
+              finishTimeSec: 0,
+              isLocalFileOnly: true
+            }));
+          renderRecordingsList();
+          if (allRecordings.length > 0) {
+            selectRecording(allRecordings[0].filename);
+          }
+        });
+      }
+
+      if (btnCopyLanUrl) {
+        btnCopyLanUrl.addEventListener('click', () => {
+          const txt = recLanUrlDisplay.textContent || window.location.href;
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(txt).then(() => {
+              btnCopyLanUrl.textContent = 'Tersalin!';
+              setTimeout(() => {
+                btnCopyLanUrl.textContent = 'Salin Link LAN';
+              }, 1500);
+            });
+          }
+        });
+      }
+
+      if (btnRefreshRecordings) {
+        btnRefreshRecordings.addEventListener('click', () => {
+          loadServerInfo();
+          loadRecordingsFromServer();
+        });
+      }
+
+      inpFilterSearch.addEventListener('input', renderRecordingsList);
+      selFilterTrial.addEventListener('change', renderRecordingsList);
+      btnClearFilter.addEventListener('click', () => {
+        inpFilterSearch.value = '';
+        selFilterTrial.value = 'all';
+        renderRecordingsList();
+      });
+
+      // Auto-poll every 5 seconds so new recordings appear automatically on Jury devices over LAN
+      loadServerInfo();
+      loadRecordingsFromServer();
+      setInterval(loadRecordingsFromServer, 5000);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+# KSTI 2026 - Search and Rescue (SAR)
+# Git Ignore
+
+# Recorded videos & local session metadata
+recordings/*
+!recordings/.gitkeep
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Editor & OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs & temp files
+*.log
+tmp/
+temp/

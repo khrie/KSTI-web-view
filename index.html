@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KSTI 2026 - Search and Rescue (SAR) | Panel Kontrol Operator &amp; Juri</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- TOP STICKY HEADER WITH ACTIVE TEAM BAR -->
+  <header class="op-header">
+    <div class="op-brand">
+      <img src="assets/ksti_cover_logo.png" alt="KSTI 2026" class="op-brand-logo" />
+      <div class="op-brand-title">
+        <h1>KSTI 2026 - SEARCH AND RESCUE (SAR)</h1>
+        <p>Panel Kontrol Broadcast, Skor 12 Tim &amp; Pengundi Korban - Hall Robotika ITS</p>
+      </div>
+    </div>
+
+    <div class="op-header-run-nav">
+      <button type="button" id="btnPrevRunTop" class="btn btn-outline btn-sm">&lt; Tim Sebelumnya</button>
+      <div class="op-header-active-pill" id="opHeaderActiveRunText">
+        Tim Kebut Seminggu | Percobaan 1
+      </div>
+      <button type="button" id="btnNextRunTop" class="btn btn-outline btn-sm">Tim Berikutnya &gt;</button>
+    </div>
+
+    <div class="op-header-actions">
+      <a href="recordings.html" target="_blank" class="btn btn-outline btn-sm">Web Rekaman Video (LAN)</a>
+      <a href="GUIDEBOOK_SAR_KSTI%202026.1.pdf" target="_blank" class="btn btn-outline btn-sm">PDF Guidebook</a>
+      <a href="display.html" target="_blank" class="btn btn-outline btn-sm">Tab Display</a>
+      <button type="button" id="btnOpenDisplayPopup" class="btn btn-gold">Buka Jendela Proyektor</button>
+    </div>
+  </header>
+
+  <!-- MAIN OPERATOR COCKPIT SHELL -->
+  <div class="op-shell">
+    <main class="op-main-workspace">
+      <nav class="op-nav-tabs">
+        <button type="button" class="op-tab-btn active" data-tab="tab-cockpit">
+          1. Cockpit Pertandingan (Skor, Undian &amp; Kontrol Tim)
+        </button>
+        <button type="button" class="op-tab-btn" data-tab="tab-rundown">
+          2. Rekap Skor 12 Tim
+        </button>
+        <button type="button" class="op-tab-btn" data-tab="tab-broadcast">
+          3. Pengaturan Kamera, Winner &amp; Banner
+        </button>
+        <button type="button" class="op-tab-btn" data-tab="tab-recordings">
+          4. Rekaman Video &amp; Akses LAN
+        </button>
+      </nav>
+
+      <!-- =================================================================
+           TAB 1: COCKPIT PERTANDINGAN
+           ================================================================= -->
+      <section id="tab-cockpit" class="op-tab-pane active">
+        <!-- ZONE A: ACTIVE TEAM (1 ENTRY PER TEAM) & TRIAL SELECTOR BAR -->
+        <div class="op-card op-cockpit-runbar">
+          <div class="op-cockpit-runbar-grid op-cockpit-runbar-3col">
+            <div class="op-field">
+              <label>Pilih Giliran Tampil (12 Tim)</label>
+              <select id="selScoreTeam"></select>
+            </div>
+            <div class="op-field">
+              <label>Sesi Percobaan</label>
+              <select id="selScoreTrial">
+                <option value="0">Percobaan 1</option>
+                <option value="1">Percobaan 2</option>
+                <option value="2">Percobaan 3</option>
+              </select>
+            </div>
+            <div class="op-field" style="justify-content:flex-end;">
+              <button type="button" id="btnPushLiveMatchDirect" class="btn btn-blue" style="width:100%;">
+                Tampilkan Live Match
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ZONE B: 2-COLUMN COCKPIT (LEFT: SCORING CHECKLIST | RIGHT: RANDOMIZER & ARENA MAP) -->
+        <div class="op-cockpit-split">
+          <!-- LEFT COLUMN: SCORING CHECKLIST + AUTO FINISH BONUS -->
+          <div class="op-card op-cockpit-col">
+            <div class="op-card-header" style="margin-bottom:10px;">
+              <div>
+                <div class="op-card-title">Checklist Penilaian Juri</div>
+                <div class="op-card-sub">
+                  Setiap centang langsung memperbarui skor pada layar penonton dan rekap tim
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" id="btnResetCurrentScore" class="btn btn-outline btn-sm">Reset Checklist</button>
+                <button type="button" id="btnPushScoreboardScene" class="btn btn-blue btn-sm">Layar Scoreboard</button>
+              </div>
+            </div>
+
+            <!-- Score Summary Banner at Top of Checklist -->
+            <div id="opScoreSummaryBanner" class="op-live-score-banner"></div>
+
+            <div class="op-score-missions-list">
+              <!-- 1. Keluar START -->
+              <div class="op-score-row">
+                <div>
+                  <strong>1. Keluar Wilayah START</strong>
+                  <div class="op-score-sub">Seluruh badan robot melewati batas wilayah START</div>
+                </div>
+                <label class="op-check-label">
+                  <input type="checkbox" id="chkKeluarHome" />
+                  <span>Keluar START (+50)</span>
+                </label>
+              </div>
+
+              <!-- 2. 5 Rescue Missions (K-1 to K-5 -> SZ-1 to SZ-5) -->
+              <div id="opMissionsChecklist"></div>
+
+              <!-- 3. Rintangan 1 (R1) -->
+              <div class="op-score-row">
+                <div>
+                  <strong>3. Melewati Rintangan 1 (R1)</strong>
+                  <div class="op-score-sub">1x penilaian dari nilai terbaik</div>
+                </div>
+                <div class="op-check-group">
+                  <label class="op-check-label">
+                    <input type="checkbox" id="chkR1WithoutVictim" />
+                    <span>Tanpa Korban (+100)</span>
+                  </label>
+                  <label class="op-check-label">
+                    <input type="checkbox" id="chkR1WithVictim" />
+                    <span>Membawa Korban (+150)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 4. Rintangan 2 (R2) -->
+              <div class="op-score-row">
+                <div>
+                  <strong>4. Melewati Rintangan 2 (R2)</strong>
+                  <div class="op-score-sub">1x penilaian dari nilai terbaik</div>
+                </div>
+                <div class="op-check-group">
+                  <label class="op-check-label">
+                    <input type="checkbox" id="chkR2WithoutVictim" />
+                    <span>Tanpa Korban (+150)</span>
+                  </label>
+                  <label class="op-check-label">
+                    <input type="checkbox" id="chkR2WithVictim" />
+                    <span>Membawa Korban (+300)</span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- 5. Finish Check (Auto-takes latest elapsed time from Match Timer) -->
+              <div class="op-score-row op-score-row-bonus">
+                <div style="flex:1;min-width:210px;">
+                  <strong>5. Finish</strong>
+                  <div class="op-score-sub">
+                    Centang Finish otomatis mengambil waktu terbaru dari Timer Lomba
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                    <span style="font-size:12px;font-weight:700;color:#0f172a;">Waktu Selesai (detik):</span>
+                    <input type="number" id="inpFinishTimeSec" min="1" max="299" value="180" style="width:78px;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;font-weight:800;" />
+                    <button type="button" id="btnCheckAll5AndBonus" class="btn btn-outline btn-sm">Centang 5 Misi + Finish</button>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+                  <label class="op-check-label op-check-bonus">
+                    <input type="checkbox" id="chkBonusFinish" />
+                    <span>FINISH</span>
+                  </label>
+                  <div id="opBonusPreviewBadge" style="font-size:11.5px;font-weight:800;color:#15803d;"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;flex-wrap:wrap;">
+              <button type="button" id="btnSaveTrialScore" class="btn btn-green">Simpan Skor Percobaan</button>
+              <button type="button" id="btnSaveAndNextRun" class="btn btn-gold">Simpan &amp; Lanjut Tim Berikutnya &gt;</button>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: SURVIVOR RANDOMIZER (K-1 & K-2) + ARENA MAP -->
+          <div class="op-card op-cockpit-col">
+            <div class="op-randomizer-hero-bar" style="padding:12px 14px;margin-bottom:12px;">
+              <div>
+                <div style="font-size:10.5px;font-weight:700;color:#fde047;text-transform:uppercase;">
+                  Pengundi Posisi Korban (K-1 &amp; K-2)
+                </div>
+                <h2 style="font-size:16px;font-weight:800;color:#ffffff;margin-top:2px;">
+                  Acak Posisi Korban Asli &amp; Dummy
+                </h2>
+              </div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button type="button" id="btnRandomizeAll" class="btn btn-gold">
+                  ACAK KORBAN (K-1 &amp; K-2)
+                </button>
+                <button type="button" id="btnPushRandomizerScene" class="btn btn-outline" style="background:#fff;color:#003876;">
+                  Layar Peta Undian
+                </button>
+              </div>
+            </div>
+
+            <!-- K-1 & K-2 Slot Cards -->
+            <div class="op-rand-rooms-stack">
+              <div class="op-room-box" style="padding:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <div>
+                    <strong style="font-size:13px;color:#003876;">K-1</strong>
+                    <div style="font-size:11px;color:#64748b;">1 Korban Asli &amp; 2 Dummy (Klik untuk pilih manual)</div>
+                  </div>
+                  <button type="button" id="btnRandomizeK1" class="btn btn-outline btn-sm">Acak K-1</button>
+                </div>
+                <div id="opK1SlotsContainer" class="op-slots-grid-3"></div>
+              </div>
+
+              <div class="op-room-box" style="padding:10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <div>
+                    <strong style="font-size:13px;color:#003876;">K-2</strong>
+                    <div style="font-size:11px;color:#64748b;">1 Korban Asli &amp; 1 Dummy (Klik untuk pilih manual)</div>
+                  </div>
+                  <button type="button" id="btnRandomizeK2" class="btn btn-outline btn-sm">Acak K-2</button>
+                </div>
+                <div id="opK2SlotsContainer" class="op-slots-grid-2"></div>
+              </div>
+            </div>
+
+            <!-- Interactive Arena Map -->
+            <div style="margin-top:12px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <strong style="font-size:13px;color:#003876;">Peta Lokasi Korban pada Arena</strong>
+              </div>
+              <div id="opArenaMapContainer" style="width:100%;background:#0f172a;border:1px solid #cbd5e1;border-radius:4px;overflow:hidden;"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           TAB 2: REKAP SKOR 12 TIM
+           ================================================================= -->
+      <section id="tab-rundown" class="op-tab-pane">
+        <!-- 1. Rekap 12 Tim -->
+        <div class="op-card">
+          <div class="op-card-header">
+            <div>
+              <div class="op-card-title">Daftar 12 Tim Peserta SAR &amp; Rekap Skor 3 Percobaan</div>
+              <div class="op-card-sub">
+                12 tim x 3 percobaan, skor terbaik menjadi nilai akhir tim.
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button type="button" id="btnExportRundownCSV" class="btn btn-green">Unduh Rekap CSV</button>
+              <button type="button" id="btnPushRundownScene" class="btn btn-blue">Tampilkan Daftar Tim di Proyektor</button>
+            </div>
+          </div>
+
+          <!-- Podium Juara 1, 2, 3 Summary -->
+          <div id="opPodiumSummaryCards" class="op-podium-grid"></div>
+
+          <div id="opLeaderboardTableWrap" style="overflow-x:auto;margin-top:12px;"></div>
+        </div>
+
+        <!-- 2. Riwayat Undian -->
+        <div class="op-card">
+          <div class="op-card-header">
+            <div>
+              <div class="op-card-title">Riwayat Undian Posisi Korban (K-1 &amp; K-2)</div>
+              <div class="op-card-sub">Log pengundian posisi korban selama pertandingan berlangsung</div>
+            </div>
+            <button type="button" id="btnClearRandHistory" class="btn btn-outline btn-sm">Bersihkan Riwayat</button>
+          </div>
+          <div id="opRandHistoryContainer" style="overflow-x:auto;"></div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           TAB 3: PENGATURAN KAMERA TUNGGAL, WINNER & BANNER
+           ================================================================= -->
+      <section id="tab-broadcast" class="op-tab-pane">
+        <!-- Single Camera Configuration -->
+        <div class="op-card">
+          <div class="op-card-header">
+            <div>
+              <div class="op-card-title">Pengaturan Jendela Kamera Utama Live Match (1 Kamera)</div>
+              <div class="op-card-sub">Layar Live Match menampilkan 1 jendela kamera arena pertandingan utama berdampingan dengan Timer dan Score</div>
+            </div>
+            <button type="button" id="btnRefreshWebcams" class="btn btn-outline">Deteksi Perangkat Kamera</button>
+          </div>
+
+          <div class="op-form-grid">
+            <div class="op-field">
+              <label>Mode Tampilan Jendela Kamera</label>
+              <select id="selSingleCamMode">
+                <option value="webcam" selected>Kamera Lokal (Webcam / Capture Card)</option>
+                <option value="arena_map">Peta Arena Interaktif (K-1 &amp; K-2)</option>
+                <option value="chroma_green">Chroma Key Hijau (#00FF00)</option>
+                <option value="chroma_blue">Chroma Key Biru (#0000FF)</option>
+              </select>
+            </div>
+            <div class="op-field">
+              <label>Pilih Perangkat Kamera Lokal</label>
+              <select id="selSingleCamDevice">
+                <option value="">Kamera Default Sistem</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pengaturan Layar Winner & Teks Banner -->
+        <div class="op-card">
+          <div class="op-card-header">
+            <div>
+              <div class="op-card-title">Pengaturan Layar Winner &amp; Teks Intermission</div>
+              <div class="op-card-sub">Atur tim pemenang (otomatis berdasarkan skor terbaik 12 tim atau manual) dan teks layar Sesaat Lagi / Istirahat</div>
+            </div>
+            <button type="button" id="btnShowWinnerNow" class="btn btn-gold">Tampilkan Layar Winner</button>
+          </div>
+
+          <div class="op-form-grid">
+            <div class="op-field">
+              <label>Penentuan Tim Pemenang</label>
+              <select id="selWinnerTeam"></select>
+              <div id="opCurrentWinnerResolvedText" style="font-size:11.5px;color:#16a34a;font-weight:700;margin-top:3px;"></div>
+            </div>
+            <div class="op-field">
+              <label>Preset Predikat Juara</label>
+              <select id="selWinnerPreset">
+                <option value="juara1">JUARA 1 - Medali Emas + Sertifikat + Rp4.000.000,00</option>
+                <option value="juara2">JUARA 2 - Medali Perak + Sertifikat + Rp3.000.000,00</option>
+                <option value="juara3">JUARA 3 - Medali Perunggu + Sertifikat + Rp2.000.000,00</option>
+                <option value="winner">WINNER - Pemenang Pertandingan</option>
+              </select>
+            </div>
+            <div class="op-field">
+              <label>Teks Utama Winner</label>
+              <input type="text" id="inpWinnerTitle" value="WINNER" />
+            </div>
+            <div class="op-field">
+              <label>Keterangan Hadiah / Sub-judul</label>
+              <input type="text" id="inpWinnerPrize" value="Medali Emas + Sertifikat + Rp4.000.000,00" />
+            </div>
+            <div class="op-field">
+              <label>Teks Banner Sesaat Lagi</label>
+              <input type="text" id="inpSesaatTitle" value="SESAAT LAGI" />
+            </div>
+            <div class="op-field">
+              <label>Teks Banner Istirahat / ISHOMA</label>
+              <input type="text" id="inpIstirahatTitle" value="ISTIRAHAT / ISHOMA" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           TAB 4: REKAMAN VIDEO PERTANDINGAN & AKSES LAN (WI-FI LOKAL)
+           ================================================================= -->
+      <section id="tab-recordings" class="op-tab-pane">
+        <!-- LAN Info Card -->
+        <div class="op-card" style="background:#002855;color:#ffffff;border-left:6px solid #f5b800;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+              <div style="font-size:11px;font-weight:800;color:#fde047;text-transform:uppercase;">
+                Akses Lokal Internet / Wi-Fi Sama (LAN) untuk Pemeriksaan Video Juri &amp; Panitia
+              </div>
+              <div id="opLanFolderStatus" style="font-size:13px;color:#e2e8f0;margin-top:4px;">
+                Folder Penyimpanan Rekaman: <strong>./recordings/</strong>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:12px;color:#bae6fd;font-weight:700;">Link LAN Cek Video:</span>
+              <code id="opLanRecordingsUrl" style="background:#0f172a;border:1px solid #38bdf8;color:#fde047;padding:6px 12px;border-radius:4px;font-size:13.5px;font-weight:800;">http://localhost:8080/recordings.html</code>
+              <button type="button" id="btnCopyOpLanUrl" class="btn btn-outline btn-sm" style="background:#ffffff;color:#003876;">Salin Link LAN</button>
+              <a href="recordings.html" target="_blank" class="btn btn-gold btn-sm">Buka Web Rekaman Penuh</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recording Controls + Saved Videos Grid -->
+        <div class="op-cockpit-split">
+          <!-- Left: Video Player Preview -->
+          <div class="op-card op-cockpit-col">
+            <div class="op-card-header" style="margin-bottom:10px;">
+              <div>
+                <div class="op-card-title">Pemutar Rekaman Video (Folder <code>recordings/</code>)</div>
+                <div class="op-card-sub" id="opTabRecActiveMeta">Pilih rekaman di sebelah kanan untuk memutar dan memeriksa hasil pertandingan</div>
+              </div>
+              <a id="btnTabRecDownload" href="#" download class="btn btn-green btn-sm" style="display:none;">Unduh Video</a>
+            </div>
+
+            <div style="width:100%;aspect-ratio:16/9;background:#020617;border-radius:4px;overflow:hidden;border:2px solid #003876;display:flex;align-items:center;justify-content:center;">
+              <video id="opTabRecVideoPlayer" controls playsinline style="width:100%;height:100%;object-fit:contain;"></video>
+            </div>
+          </div>
+
+          <!-- Right: List of Videos in ./recordings -->
+          <div class="op-card op-cockpit-col">
+            <div class="op-card-header" style="margin-bottom:10px;">
+              <div>
+                <div class="op-card-title">Daftar File Rekaman di Folder <code>recordings/</code> (<span id="opTabRecCount">0</span>)</div>
+                <div class="op-card-sub">Otomatis merekam dan menyimpan saat Timer Lomba berjalan hingga Finish</div>
+              </div>
+              <button type="button" id="btnRefreshTabRecordings" class="btn btn-outline btn-sm">Muat Ulang</button>
+            </div>
+
+            <div id="opTabRecListContainer" style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;">
+              <div style="padding:20px;text-align:center;color:#64748b;font-size:12.5px;">
+                Memuat daftar rekaman dari folder <code>recordings/</code>...
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- RIGHT STICKY SIDEBAR: LIVE PREVIEW + SCENE SWITCHER + SEPARATE PREP TIMER & MATCH TIMER -->
+    <aside class="op-sidebar-sticky">
+      <!-- 1. Live Display Preview & Scene Switcher -->
+      <div class="op-card" style="padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:800;color:#003876;">
+            PRATINJAU LAYAR PROYEKTOR (16:9)
+          </div>
+          <button type="button" id="btnSidebarOpenDisplay" class="btn btn-gold btn-sm">
+            Jendela Display
+          </button>
+        </div>
+
+        <div id="opMiniPreviewWrap" class="op-mini-preview-wrap">
+          <iframe id="opMiniPreviewIframe" class="op-mini-preview-iframe" src="display.html" title="Live Display Preview"></iframe>
+        </div>
+
+        <div style="margin-top:10px;">
+          <div style="font-size:11px;font-weight:800;color:#475569;margin-bottom:6px;">
+            PILIH SCENE LAYAR PROYEKTOR:
+          </div>
+          <div class="op-scene-grid">
+            <button type="button" class="op-scene-btn" data-scene-select="live_match">1. Live Match</button>
+            <button type="button" class="op-scene-btn" data-scene-select="randomizer">2. Peta Undian</button>
+            <button type="button" class="op-scene-btn" data-scene-select="rundown">3. Daftar Tim</button>
+            <button type="button" class="op-scene-btn" data-scene-select="scoreboard">4. Papan Skor</button>
+            <button type="button" class="op-scene-btn" data-scene-select="sesaat_lagi">5. Sesaat Lagi</button>
+            <button type="button" class="op-scene-btn" data-scene-select="istirahat">6. Istirahat</button>
+            <button type="button" class="op-scene-btn" data-scene-select="winner">7. Winner</button>
+            <button type="button" class="op-scene-btn" data-scene-select="splash">8. Title Screen</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. TIMER PREPARATION (3 MENIT / 180 DETIK) -->
+      <div class="op-card op-timer-card-prep" style="padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:800;color:#0284c7;">TIMER PREPARATION (3 MENIT)</span>
+          <span id="opPrepStatusBadge" style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:3px;background:#e0f2fe;color:#0369a1;">STANDBY</span>
+        </div>
+
+        <div class="op-timer-display op-timer-display-prep">
+          <div>
+            <div style="font-size:10px;color:#bae6fd;font-weight:700;">SISA WAKTU PREP</div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div id="opPrepTimerDigits" class="op-timer-num" style="color:#38bdf8;">180</div>
+              <div id="opPrepTimerMMSS" style="font-family:monospace;font-size:15px;font-weight:700;color:#e0f2fe;">(03:00)</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#bae6fd;font-weight:700;">TERPAKAI</div>
+            <div id="opPrepElapsedDigits" style="font-family:monospace;font-size:16px;font-weight:700;color:#ffffff;">0s / 180s</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:6px;margin-top:8px;">
+          <button type="button" id="btnPrepStartPause" class="btn btn-blue">START PREP</button>
+          <button type="button" id="btnPrepReset" class="btn btn-outline" style="font-size:11.5px;padding:6px;">Reset 180s</button>
+        </div>
+      </div>
+
+      <!-- 3. TIMER LOMBA (5 MENIT / 300 DETIK) -->
+      <div class="op-card op-timer-card-match" style="padding:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span style="font-size:12px;font-weight:800;color:#003876;">TIMER LOMBA (5 MENIT)</span>
+          <span id="opMatchStatusBadge" style="font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:3px;background:#e2e8f0;color:#334155;">STANDBY</span>
+        </div>
+
+        <div class="op-timer-display op-timer-display-match">
+          <div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:700;">SISA WAKTU LOMBA</div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div id="opMatchTimerDigits" class="op-timer-num">300</div>
+              <div id="opMatchTimerMMSS" style="font-family:monospace;font-size:15px;font-weight:700;color:#fde047;">(05:00)</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:700;">WAKTU LOMBA</div>
+            <div id="opMatchElapsedDigits" style="font-family:monospace;font-size:16px;font-weight:700;color:#38bdf8;">0s / 300s</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:6px;margin-top:8px;">
+          <button type="button" id="btnMatchStartPause" class="btn btn-green">START LOMBA</button>
+          <button type="button" id="btnMatchReset" class="btn btn-outline" style="font-size:11.5px;padding:6px;">Reset 300s</button>
+        </div>
+
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;flex-direction:column;gap:4px;">
+          <button type="button" id="btnRecordRetry" class="btn btn-red" style="font-size:11.5px;padding:6px;">
+            Catat RETRY (1x) - Reset Waktu Finish
+          </button>
+          <div id="opRetryInfoText" style="font-size:11px;color:#64748b;text-align:center;"></div>
+        </div>
+
+        <!-- 4. REKAMAN KAMERA ARENA (AUTO & MANUAL SAVE TO ./recordings/) -->
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #cbd5e1;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:11px;font-weight:800;color:#003876;">REKAMAN KAMERA (FOLDER recordings/)</span>
+            <span id="opCamRecStatusBadge" style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:3px;background:#e2e8f0;color:#334155;">SIAP REKAM</span>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#334155;cursor:pointer;">
+            <input type="checkbox" id="chkAutoRecordOnMatch" checked />
+            <span>Otomatis Rekam saat Timer Lomba &amp; Simpan saat Finish</span>
+          </label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+            <button type="button" id="btnCamRecToggle" class="btn btn-red" style="font-size:11px;padding:6px;">
+              Mulai Rekam Manual
+            </button>
+            <a href="recordings.html" target="_blank" class="btn btn-outline" style="font-size:11px;padding:6px;text-align:center;">
+              Buka Isi Rekaman
+            </a>
+          </div>
+          <div id="opCamRecSavedInfo" style="font-size:10.5px;color:#15803d;font-weight:700;text-align:center;"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="js/state.js"></script>
+  <script src="js/arena.js"></script>
+  <script src="js/broadcast_renderer.js"></script>
+  <script src="js/operator.js"></script>
+</body>
+</html>
