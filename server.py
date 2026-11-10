@@ -20,6 +20,7 @@ PORT = int(os.environ.get("KSTI_PORT", "8080"))
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 RECORDINGS_DIR = os.path.join(ROOT_DIR, "recordings")
 METADATA_FILE = os.path.join(RECORDINGS_DIR, "metadata.json")
+SCORE_CSV_FILE = os.path.join(ROOT_DIR, "Skor KSTI Robotics 2026 - SAR.csv")
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
@@ -165,6 +166,28 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
                 "recordings": items
             })
 
+        if route == "/api/scores":
+            if os.path.exists(SCORE_CSV_FILE):
+                with open(SCORE_CSV_FILE, "r", encoding="utf-8") as f:
+                    csv_text = f.read()
+                return self.send_json({"ok": True, "csv": csv_text})
+            else:
+                return self.send_json({"ok": False, "error": "File CSV skor belum ada"}, status=404)
+
+        if route == "/api/scores/download":
+            if os.path.exists(SCORE_CSV_FILE):
+                with open(SCORE_CSV_FILE, "rb") as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/csv; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="Skor_KSTI_Robotics_2026_SAR.csv"')
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            else:
+                return self.send_json({"ok": False, "error": "File CSV skor belum ada"}, status=404)
+
         # Support HTTP Range requests for video files so scrubbing/seeking works on all LAN browsers
         range_header = self.headers.get("Range")
         if range_header and route.startswith("/recordings/"):
@@ -222,6 +245,31 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
+
+        if parsed.path == "/api/scores":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                post_data = self.rfile.read(content_length)
+                content_type = self.headers.get("Content-Type", "")
+
+                csv_text = ""
+                if "application/json" in content_type:
+                    payload = json.loads(post_data.decode("utf-8"))
+                    csv_text = payload.get("csv", "")
+                else:
+                    csv_text = post_data.decode("utf-8")
+
+                if not csv_text.strip():
+                    return self.send_json({"ok": False, "error": "Data CSV kosong"}, status=400)
+
+                with open(SCORE_CSV_FILE, "w", encoding="utf-8", newline="") as f:
+                    f.write(csv_text)
+
+                print(f"[SCORES] Skor tersimpan di: {SCORE_CSV_FILE}")
+                return self.send_json({"ok": True, "message": "Skor berhasil disimpan ke CSV"})
+            except Exception as e:
+                return self.send_json({"ok": False, "error": str(e)}, status=500)
+
         if parsed.path != "/api/recordings":
             return self.send_json({"ok": False, "error": "Endpoint tidak ditemukan"}, status=404)
 

@@ -1666,11 +1666,60 @@
     });
   }
 
+  // -------------------- CSV EXPORT & SYNC --------------------
+  function generateScoreCSV(state) {
+    const ranked = window.getRankedTeams ? window.getRankedTeams(state) : [];
+    const lines = [
+      'Peringkat,No Urut,No Registrasi,Nama Tim,Perguruan Tinggi,P1 Skor Misi,P1 Waktu (s),P1 Bonus Finish,P1 Skor Akhir,P2 Skor Misi,P2 Waktu (s),P2 Bonus Finish,P2 Skor Akhir,P3 Skor Misi,P3 Waktu (s),P3 Bonus Finish,P3 Skor Akhir,Skor Terbaik,Waktu Terbaik (s),Status / Catatan'
+    ];
+
+    ranked.forEach((t) => {
+      const pRank = t.hasScore && t.bestScore > 0 ? t.rank : '-';
+      const noUrut = t.urutan || '';
+      const noReg = t.regNo || '';
+      const name = (t.name || '').replace(/"/g, '""');
+      const uni = (t.university || '').replace(/"/g, '""');
+
+      const trialParts = [];
+      for (let i = 0; i < 3; i++) {
+        const tr = (t.trials && t.trials[i]) || {};
+        const completed = tr.completed || (tr.finalScore > 0);
+        const raw = completed ? (tr.rawScore || 0) : '';
+        const time = completed ? (tr.timeSec || 0) : '';
+        const bonus = completed ? (tr.bonusFinish ? 'YA' : 'TIDAK') : '';
+        const final = completed ? (tr.finalScore || 0) : '';
+        trialParts.push(`${raw},${time},${bonus},${final}`);
+      }
+
+      const bestScore = t.bestScore || 0;
+      const bestTime = t.bestTimeSec || 300;
+      const status = t.hasScore ? 'Selesai' : 'Siap Bertanding';
+
+      lines.push(
+        `${pRank},${noUrut},${noReg},"${name}","${uni}",${trialParts.join(',')},${bestScore},${bestTime},${status}`
+      );
+    });
+
+    return lines.join('\n');
+  }
+
+  function syncScoresToServer(state) {
+    try {
+      const csvText = generateScoreCSV(state);
+      fetch('/api/scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/csv; charset=utf-8' },
+        body: csvText
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
   if (btnSaveTrialScore) {
     btnSaveTrialScore.addEventListener('click', () => {
       store.setState((prev) => {
         const next = JSON.parse(JSON.stringify(prev));
         syncScoringIntoTrial(next, true);
+        syncScoresToServer(next);
         return next;
       });
     });
@@ -1681,6 +1730,7 @@
       store.setState((prev) => {
         const next = JSON.parse(JSON.stringify(prev));
         syncScoringIntoTrial(next, true);
+        syncScoresToServer(next);
         const nextRunObj = window.getNextRun(next.activeRun.runCode);
         if (nextRunObj) {
           applyRunSelectionToState(next, nextRunObj, { resetTimers: true });
@@ -1703,29 +1753,18 @@
     });
   }
 
-  // -------------------- CSV EXPORT --------------------
   const btnExportRundownCSV = document.getElementById('btnExportRundownCSV');
   if (btnExportRundownCSV) {
     btnExportRundownCSV.addEventListener('click', () => {
       const st = store.getState();
-      const ranked = window.getRankedTeams(st);
-      const lines = [
-        'Peringkat,Nama Tim,Perguruan Tinggi,Percobaan 1,Percobaan 2,Percobaan 3,Skor Terbaik'
-      ];
-      ranked.forEach((t) => {
-        const p1 = t.trialScores[0] ? t.trialScores[0].score : '';
-        const p2 = t.trialScores[1] ? t.trialScores[1].score : '';
-        const p3 = t.trialScores[2] ? t.trialScores[2].score : '';
-        lines.push(
-          `${t.rank},"${t.name}","${t.university}",${p1},${p2},${p3},${t.bestScore}`
-        );
-      });
+      const csvContent = generateScoreCSV(st);
+      syncScoresToServer(st);
 
-      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'Rekap_SAR_KSTI_2026.csv';
+      a.download = 'Skor_KSTI_Robotics_2026_SAR.csv';
       a.click();
       URL.revokeObjectURL(url);
     });

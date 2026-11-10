@@ -10,6 +10,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_1',
     urutan: 1,
+    regNo: 'KSTI26-0319',
     name: 'Tim Kebut Seminggu',
     university: 'Universitas Airlangga',
     shortUni: 'Universitas Airlangga',
@@ -18,6 +19,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_2',
     urutan: 2,
+    regNo: 'KSTI26-0309',
     name: 'R2c Legacy',
     university: 'Universitas Kristen Satya Wacana',
     shortUni: 'Universitas Kristen Satya Wacana',
@@ -26,6 +28,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_3',
     urutan: 3,
+    regNo: 'KSTI26-0315',
     name: 'Satria',
     university: 'Universitas Jenderal Soedirman',
     shortUni: 'Universitas Jenderal Soedirman',
@@ -34,6 +37,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_4',
     urutan: 4,
+    regNo: 'KSTI26-0321',
     name: 'Tirtapod',
     university: 'Universitas Sultan Ageng Tirtayasa',
     shortUni: 'Universitas Sultan Ageng Tirtayasa',
@@ -42,6 +46,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_5',
     urutan: 5,
+    regNo: 'KSTI26-0243',
     name: 'Dewayani',
     university: 'Universitas Negeri Surabaya',
     shortUni: 'Universitas Negeri Surabaya',
@@ -50,6 +55,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_6',
     urutan: 6,
+    regNo: 'KSTI26-0200',
     name: 'Abinara-1',
     university: 'Institut Teknologi Sepuluh Nopember',
     shortUni: 'Institut Teknologi Sepuluh Nopember',
@@ -58,6 +64,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_7',
     urutan: 7,
+    regNo: 'KSTI26-0121',
     name: 'Krakatau Ashibot',
     university: 'Universitas Teknokrat Indonesia',
     shortUni: 'Universitas Teknokrat Indonesia',
@@ -66,6 +73,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_8',
     urutan: 8,
+    regNo: 'KSTI26-0047',
     name: 'HEXA CAKRAWALA',
     university: 'Universitas Negeri Malang',
     shortUni: 'Universitas Negeri Malang',
@@ -74,6 +82,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_9',
     urutan: 9,
+    regNo: 'KSTI26-0031',
     name: 'Al-Fatih',
     university: 'Universitas Gadjah Mada',
     shortUni: 'Universitas Gadjah Mada',
@@ -82,6 +91,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_10',
     urutan: 10,
+    regNo: 'KSTI26-0010',
     name: 'Championships',
     university: 'Politeknik Perkapalan Negeri Surabaya',
     shortUni: 'Politeknik Perkapalan Negeri Surabaya',
@@ -90,6 +100,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_11',
     urutan: 11,
+    regNo: 'KSTI26-0004',
     name: 'Andromeda',
     university: 'Universitas Diponegoro',
     shortUni: 'Universitas Diponegoro',
@@ -98,6 +109,7 @@ const DEFAULT_TEAMS = [
   {
     id: 'team_12',
     urutan: 12,
+    regNo: 'KSTI26-0278',
     name: 'EILERO TEAM',
     university: 'Politeknik Elektronika Negeri Surabaya',
     shortUni: 'Politeknik Elektronika Negeri Surabaya',

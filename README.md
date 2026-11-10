@@ -99,7 +99,7 @@ Setelah server aktif, terminal akan menampilkan alamat URL akses lokal dan LAN:
 ├── recordings/                    # Folder penyimpanan file video rekaman
 │   └── .gitkeep
 ├── Daftar KSTI Robotics 2026 - SAR.csv            # Daftar 12 tim resmi
-├── Rundown Robotics Competition KSTI 2026 - SAR.csv # Rundown giliran tampil
+├── Skor KSTI Robotics 2026 - SAR.csv              # Rekap skor nilai 12 tim resmi
 ├── GUIDEBOOK_SAR_KSTI 2026.1.pdf                  # Buku panduan lomba
 ├── display.html                   # Halaman display proyektor (16:9)
 ├── index.html                     # Halaman panel operator utama
