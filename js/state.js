@@ -186,7 +186,7 @@ function createEmptyScoringFor(teamId = 'team_1', trialIndex = 0, runCode = 'run
     r2: 'none',
     reachedFinish: false,
     bonusFinishChecked: false,
-    finishTimeSec: 180,
+    finishTimeSec: 0,
     retryCount: 0,
     retryRestartTimeSec: 0
   };
@@ -280,7 +280,7 @@ const DEFAULT_STATE = {
   soundEnabled: false
 };
 
-function getMatchTimerElapsedSec(matchTimer, fallbackSec = 180) {
+function getMatchTimerElapsedSec(matchTimer, fallbackSec = 300) {
   if (!matchTimer) return fallbackSec;
   let rem = Number(matchTimer.remainingSec);
   if (matchTimer.isRunning && matchTimer.startedAt) {
@@ -306,7 +306,7 @@ function calculateSARScore(scoring, matchTimer = null) {
       eligibleForBonus: false,
       bonusPoints: 0,
       finalScore: 0,
-      timeSec: 180
+      timeSec: 300
     };
   }
 
@@ -337,7 +337,7 @@ function calculateSARScore(scoring, matchTimer = null) {
 
   let rawTime = Number(scoring.finishTimeSec);
   if (!Number.isFinite(rawTime) || rawTime <= 0) {
-    rawTime = matchTimer ? getMatchTimerElapsedSec(matchTimer, 180) : 180;
+    rawTime = matchTimer ? getMatchTimerElapsedSec(matchTimer, 300) : 300;
   }
   const timeSec = Math.max(1, Math.min(300, Math.round(rawTime)));
 
@@ -528,9 +528,7 @@ class KSTIStateStore {
     this.state = this.loadFromStorage();
     this.channel = null;
 
-    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
-
-    if (!isInsideIframe && typeof BroadcastChannel !== 'undefined') {
+    if (typeof BroadcastChannel !== 'undefined') {
       try {
         this.channel = new BroadcastChannel(CHANNEL_NAME);
         this.channel.onmessage = (ev) => {
@@ -541,44 +539,79 @@ class KSTIStateStore {
       } catch (e) {}
     }
 
-    if (!isInsideIframe) {
-      window.addEventListener('storage', (ev) => {
-        if (ev.key === STORAGE_KEY && ev.newValue) {
-          try {
-            this.applyExternalState(JSON.parse(ev.newValue));
-          } catch (e) {}
-        }
-      });
-    }
+    window.addEventListener('storage', (ev) => {
+      if (ev.key === STORAGE_KEY && ev.newValue) {
+        try {
+          this.applyExternalState(JSON.parse(ev.newValue));
+        } catch (e) {}
+      }
+    });
 
     window.addEventListener('message', (ev) => {
       if (ev.data && ev.data.type === 'STATE_SYNC') {
         this.applyExternalState(ev.data.state);
-      } else if (!isInsideIframe && ev.data && ev.data.type === 'REQUEST_STATE') {
+      } else if (ev.data && ev.data.type === 'REQUEST_STATE') {
         this.broadcast();
       }
     });
 
-    if (!isInsideIframe && window.opener) {
+    if (window.opener) {
       try {
         window.opener.postMessage({ type: 'REQUEST_STATE' }, '*');
       } catch (e) {}
     }
 
-    if (!isInsideIframe) {
-      setInterval(async () => {
-        try {
-          const res = await fetch('/api/state');
-          if (!res.ok) return;
-          const data = await res.json();
-          if (data && data.ok && data.state && data.state.lastUpdated) {
-            if (data.state.lastUpdated > (this.state.lastUpdated || 0)) {
-              this.applyExternalState(data.state);
-            }
+    this.lastRemoteTimestamp = 0;
+    this.syncServerTimer = null;
+    this.initLanSync();
+  }
+
+  initLanSync() {
+    try {
+      fetch('/api/state', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d && d.ok && d.state && d.timestamp > (this.state.lastUpdated || 0)) {
+            this.lastRemoteTimestamp = d.timestamp;
+            this.applyExternalState(d.state);
           }
-        } catch (e) {}
-      }, 1000);
-    }
+        })
+        .catch(() => {});
+    } catch (e) {}
+
+    setInterval(async () => {
+      try {
+        const res = await fetch('/api/state', { cache: 'no-store' });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (d && d.ok && d.state && d.timestamp > this.lastRemoteTimestamp) {
+          if (!this.state.lastUpdated || d.timestamp > this.state.lastUpdated) {
+            this.lastRemoteTimestamp = d.timestamp;
+            this.applyExternalState(d.state);
+          }
+        }
+      } catch (e) {}
+    }, 500);
+  }
+
+  syncToServerDebounced() {
+    if (this.syncServerTimer) clearTimeout(this.syncServerTimer);
+    this.syncServerTimer = setTimeout(() => {
+      this.syncToServer();
+    }, 250);
+  }
+
+  syncToServer() {
+    try {
+      fetch('/api/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          timestamp: this.state.lastUpdated || Date.now(),
+          state: this.state
+        })
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   loadFromStorage() {
@@ -634,21 +667,7 @@ class KSTIStateStore {
     this.saveToStorage();
     this.broadcast();
     this.notify();
-    this.syncToServer();
-  }
-
-  syncToServer() {
-    if (typeof window !== 'undefined' && window.self !== window.top) return;
-    if (this._syncTimer) clearTimeout(this._syncTimer);
-    this._syncTimer = setTimeout(() => {
-      try {
-        fetch('/api/state', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.state)
-        }).catch(() => {});
-      } catch (e) {}
-    }, 200);
+    this.syncToServerDebounced();
   }
 
   applyExternalState(newState) {
@@ -658,14 +677,12 @@ class KSTIStateStore {
   }
 
   saveToStorage() {
-    if (typeof window !== 'undefined' && window.self !== window.top) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
     } catch (e) {}
   }
 
   broadcast() {
-    if (typeof window !== 'undefined' && window.self !== window.top) return;
     const msg = { type: 'STATE_SYNC', state: this.state };
     if (this.channel) {
       try {

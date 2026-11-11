@@ -9,9 +9,12 @@ untuk mengecek rekaman video pertandingan dari perangkat lain di jaringan yang s
 import os
 import re
 import sys
+import csv
+import io
 import json
 import time
 import socket
+import struct
 import urllib.parse
 from datetime import datetime
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -21,7 +24,8 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 RECORDINGS_DIR = os.path.join(ROOT_DIR, "recordings")
 METADATA_FILE = os.path.join(RECORDINGS_DIR, "metadata.json")
 SCORE_CSV_FILE = os.path.join(ROOT_DIR, "Skor KSTI Robotics 2026 - SAR.csv")
-STATE_CACHE = {}
+LATEST_STATE = None
+LATEST_STATE_TIMESTAMP = 0
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
@@ -76,6 +80,264 @@ def sanitize_filename_part(text):
     clean = re.sub(r"[^A-Za-z0-9_-]+", "_", str(text or "").strip())
     clean = re.sub(r"_+", "_", clean).strip("_")
     return clean or "Tim"
+
+
+def patch_webm_buffer(data, fallback_duration_ms=0):
+    """
+    Menyuntikkan elemen EBML Duration (0x44 0x89) ke dalam blok Info WebM
+    agar video hasil rekaman browser memiliki durasi valid dan slider pemutar
+    video (Windows Media Player, VLC, dll) aktif dan dapat digeser (seekable).
+    """
+    if not data or len(data) < 100 or not data.startswith(b"\x1a\x45\xdf\xa3"):
+        return data
+
+    info_id = b"\x15\x49\xa9\x66"
+    info_pos = data.find(info_id)
+    if info_pos == -1:
+        return data
+
+    if b"\x44\x89" in data[info_pos : info_pos + 200]:
+        return data
+
+    cluster_id = b"\x1f\x43\xb6\x75"
+    pos = info_pos
+    last_tc = 0
+    while True:
+        idx = data.find(cluster_id, pos)
+        if idx == -1:
+            break
+        head = data[idx : idx + 35]
+        tc_idx = head.find(b"\xe7")
+        if tc_idx != -1:
+            sz = head[tc_idx + 1] & 0x7F
+            val = head[tc_idx + 2 : tc_idx + 2 + sz]
+            if sz == 1:
+                last_tc = val[0]
+            elif sz == 2:
+                last_tc = struct.unpack(">H", val)[0]
+            elif sz == 3:
+                last_tc = int.from_bytes(val, "big")
+            elif sz == 4:
+                last_tc = struct.unpack(">I", val)[0]
+        pos = idx + 4
+
+    dur_ms = float(last_tc) if last_tc > 0 else float(fallback_duration_ms)
+    if dur_ms <= 0:
+        return data
+
+    pos = info_pos + 4
+    first_byte = data[pos]
+    mask = 0x80
+    vlen = 1
+    while not (first_byte & mask):
+        mask >>= 1
+        vlen += 1
+        if vlen > 8:
+            return data
+
+    orig_info_size = first_byte & (~mask)
+    for b in data[pos + 1 : pos + vlen]:
+        orig_info_size = (orig_info_size << 8) | b
+
+    info_content = data[pos + vlen : pos + vlen + orig_info_size]
+    dur_elem = b"\x44\x89\x84" + struct.pack(">f", dur_ms)
+    new_info_size = orig_info_size + len(dur_elem)
+
+    if new_info_size < 0x7F:
+        new_size_bytes = bytes([0x80 | new_info_size])
+    elif new_info_size < 0x3FFF:
+        new_size_bytes = bytes([0x40 | (new_info_size >> 8), new_info_size & 0xFF])
+    else:
+        new_size_bytes = bytes([0x20 | (new_info_size >> 16), (new_info_size >> 8) & 0xFF, new_info_size & 0xFF])
+
+    return data[:pos] + new_size_bytes + dur_elem + info_content + data[pos + vlen + orig_info_size :]
+
+
+def merge_csv_scores(existing_csv_text, incoming_csv_text):
+    """
+    Menggabungkan CSV skor lama dengan CSV baru secara aman.
+    Jika browser operator baru ter-reset (localStorage kosong) dan mengirimkan
+    baris tim kosong, skor tim yang sudah tersimpan sebelumnya di hard disk
+    TIDAK AKAN terhapus atau tertimpa.
+    """
+    if not existing_csv_text or not existing_csv_text.strip():
+        return incoming_csv_text
+    if not incoming_csv_text or not incoming_csv_text.strip():
+        return existing_csv_text
+
+    def parse_rows(text):
+        try:
+            r = csv.reader(io.StringIO(text.strip()))
+            rows = list(r)
+            if not rows:
+                return None, {}
+            header = rows[0]
+            data = {}
+            for row in rows[1:]:
+                if len(row) >= 5:
+                    reg_no = row[2].strip()
+                    name = row[3].strip()
+                    key = reg_no if reg_no else name
+                    data[key] = row
+            return header, data
+        except Exception:
+            return None, {}
+
+    ex_header, ex_map = parse_rows(existing_csv_text)
+    inc_header, inc_map = parse_rows(incoming_csv_text)
+
+    if not ex_map:
+        return incoming_csv_text
+    if not inc_map:
+        return existing_csv_text
+
+    header = inc_header or ex_header
+
+    all_keys = list(inc_map.keys())
+    for k in ex_map:
+        if k not in all_keys:
+            all_keys.append(k)
+
+    merged_rows = []
+    for k in all_keys:
+        inc_row = inc_map.get(k)
+        ex_row = ex_map.get(k)
+
+        if inc_row and not ex_row:
+            merged_rows.append(inc_row)
+            continue
+        if ex_row and not inc_row:
+            merged_rows.append(ex_row)
+            continue
+
+        res_row = list(inc_row)
+        while len(res_row) < 20:
+            res_row.append("")
+        while len(ex_row) < 20:
+            ex_row.append("")
+
+        for t_idx in range(3):
+            base_col = 5 + t_idx * 4
+            inc_final = res_row[base_col + 3].strip()
+            inc_raw = res_row[base_col].strip()
+            ex_final = ex_row[base_col + 3].strip()
+            ex_raw = ex_row[base_col].strip()
+
+            if not inc_final and not inc_raw and (ex_final or ex_raw):
+                res_row[base_col] = ex_row[base_col]
+                res_row[base_col + 1] = ex_row[base_col + 1]
+                res_row[base_col + 2] = ex_row[base_col + 2]
+                res_row[base_col + 3] = ex_row[base_col + 3]
+
+        best_score = 0
+        best_time = 300
+        has_score = False
+
+        for t_idx in range(3):
+            base_col = 5 + t_idx * 4
+            final_str = res_row[base_col + 3].strip()
+            time_str = res_row[base_col + 1].strip()
+            if final_str != "":
+                has_score = True
+                try:
+                    s = int(float(final_str))
+                    t = int(float(time_str)) if time_str else 300
+                    if s > best_score or (s == best_score and t < best_time):
+                        best_score = s
+                        best_time = t
+                except ValueError:
+                    pass
+
+        res_row[17] = str(best_score)
+        res_row[18] = str(best_time)
+        res_row[19] = "Selesai" if has_score else "Siap Bertanding"
+
+        merged_rows.append(res_row)
+
+    def sort_key(r):
+        try:
+            bs = int(float(r[17]))
+        except Exception:
+            bs = 0
+        try:
+            bt = int(float(r[18]))
+        except Exception:
+            bt = 300
+        return (-bs, bt)
+
+    rank = 1
+    sorted_rows = sorted(merged_rows, key=sort_key)
+    for r in sorted_rows:
+        try:
+            bs = int(float(r[17]))
+        except Exception:
+            bs = 0
+        if bs > 0:
+            r[0] = str(rank)
+            rank += 1
+        else:
+            r[0] = "-"
+
+    out = io.StringIO()
+    writer = csv.writer(out, lineterminator="\n")
+    writer.writerow(header)
+    for r in sorted_rows:
+        writer.writerow(r)
+
+    return out.getvalue()
+
+
+def load_trials_from_csv():
+    """
+    Membaca SCORE_CSV_FILE dan mengembalikan mapping riwayat percobaan tiap tim.
+    Digunakan untuk memulihkan skor ke web browser jika localStorage terhapus.
+    """
+    if not os.path.exists(SCORE_CSV_FILE):
+        return {}
+    try:
+        with open(SCORE_CSV_FILE, "r", encoding="utf-8") as f:
+            r = csv.reader(f)
+            rows = list(r)
+        if len(rows) < 2:
+            return {}
+        result = {}
+        for row in rows[1:]:
+            if len(row) < 17:
+                continue
+            reg_no = row[2].strip()
+            name = row[3].strip()
+            trials = []
+            for t_idx in range(3):
+                base_col = 5 + t_idx * 4
+                raw_str = row[base_col].strip()
+                time_str = row[base_col + 1].strip()
+                bonus_str = row[base_col + 2].strip()
+                final_str = row[base_col + 3].strip()
+                if final_str or raw_str:
+                    try:
+                        raw_val = int(float(raw_str)) if raw_str else 0
+                        time_val = int(float(time_str)) if time_str else 300
+                        final_val = int(float(final_str)) if final_str else 0
+                        bonus_val = bonus_str.upper() == "YA"
+                        trials.append({
+                            "completed": True,
+                            "rawScore": raw_val,
+                            "timeSec": time_val,
+                            "bonusFinish": bonus_val,
+                            "finalScore": final_val
+                        })
+                    except Exception:
+                        trials.append({})
+                else:
+                    trials.append({})
+            if reg_no:
+                result[reg_no] = trials
+            if name:
+                result[name] = trials
+        return result
+    except Exception as e:
+        print(f"[WARN] Gagal membaca riwayat trial dari CSV: {e}")
+        return {}
 
 
 def build_recordings_list():
@@ -190,7 +452,12 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
                 return self.send_json({"ok": False, "error": "File CSV skor belum ada"}, status=404)
 
         if route == "/api/state":
-            return self.send_json({"ok": True, "state": STATE_CACHE})
+            return self.send_json({
+                "ok": True,
+                "timestamp": LATEST_STATE_TIMESTAMP,
+                "state": LATEST_STATE,
+                "restoredTrials": load_trials_from_csv()
+            })
 
         # Support HTTP Range requests for video files so scrubbing/seeking works on all LAN browsers
         range_header = self.headers.get("Range")
@@ -250,6 +517,21 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
     def do_POST(self):
         parsed = urllib.parse.urlparse(self.path)
 
+        if parsed.path == "/api/state":
+            global LATEST_STATE, LATEST_STATE_TIMESTAMP
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode("utf-8"))
+                state_data = payload.get("state", payload)
+                ts = int(payload.get("timestamp", time.time() * 1000))
+                if ts >= LATEST_STATE_TIMESTAMP:
+                    LATEST_STATE = state_data
+                    LATEST_STATE_TIMESTAMP = ts
+                return self.send_json({"ok": True, "timestamp": LATEST_STATE_TIMESTAMP})
+            except Exception as e:
+                return self.send_json({"ok": False, "error": str(e)}, status=500)
+
         if parsed.path == "/api/scores":
             try:
                 content_length = int(self.headers.get("Content-Length", "0"))
@@ -266,23 +548,30 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
                 if not csv_text.strip():
                     return self.send_json({"ok": False, "error": "Data CSV kosong"}, status=400)
 
+                # Ambil CSV lama jika ada untuk di-merge secara aman
+                existing_csv = ""
+                if os.path.isfile(SCORE_CSV_FILE):
+                    try:
+                        with open(SCORE_CSV_FILE, "r", encoding="utf-8") as f:
+                            existing_csv = f.read()
+                    except Exception:
+                        existing_csv = ""
+
+                final_csv = merge_csv_scores(existing_csv, csv_text)
+
+                # Backup otomatis file CSV sebelum ditulis ulang
+                if existing_csv.strip():
+                    try:
+                        with open(SCORE_CSV_FILE + ".bak", "w", encoding="utf-8", newline="") as f:
+                            f.write(existing_csv)
+                    except Exception:
+                        pass
+
                 with open(SCORE_CSV_FILE, "w", encoding="utf-8", newline="") as f:
-                    f.write(csv_text)
+                    f.write(final_csv)
 
                 print(f"[SCORES] Skor tersimpan di: {SCORE_CSV_FILE}")
                 return self.send_json({"ok": True, "message": "Skor berhasil disimpan ke CSV"})
-            except Exception as e:
-                return self.send_json({"ok": False, "error": str(e)}, status=500)
-
-        if parsed.path == "/api/state":
-            try:
-                content_length = int(self.headers.get("Content-Length", "0"))
-                post_data = self.rfile.read(content_length)
-                payload = json.loads(post_data.decode("utf-8"))
-                global STATE_CACHE
-                if isinstance(payload, dict):
-                    STATE_CACHE = payload
-                return self.send_json({"ok": True})
             except Exception as e:
                 return self.send_json({"ok": False, "error": str(e)}, status=500)
 
@@ -310,6 +599,10 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
                 return self.send_json({"ok": False, "error": "Data video kosong"}, status=400)
 
             video_bytes = self.rfile.read(content_length)
+
+            # Auto-patch WebM Duration agar slider di media player aktif dan seekable
+            if ext == "webm":
+                video_bytes = patch_webm_buffer(video_bytes, fallback_duration_ms=duration_sec * 1000)
 
             now = datetime.now()
             ts_str = now.strftime("%Y%m%d_%H%M%S")

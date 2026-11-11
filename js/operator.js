@@ -86,6 +86,18 @@
         startedAt: null,
         retryTimestampSec: null
       };
+    } else {
+      // Pastikan timer yang sedang berjalan di-pause saat berganti giliran tim
+      if (next.prepTimer && next.prepTimer.isRunning) {
+        next.prepTimer.isRunning = false;
+        next.prepTimer.startedAt = null;
+        next.prepTimer.baseRemainingSec = next.prepTimer.remainingSec;
+      }
+      if (next.matchTimer && next.matchTimer.isRunning) {
+        next.matchTimer.isRunning = false;
+        next.matchTimer.startedAt = null;
+        next.matchTimer.baseRemainingSec = next.matchTimer.remainingSec;
+      }
     }
 
     if (options.switchToScene) {
@@ -339,12 +351,10 @@
       if (!st.prepTimer.isRunning) {
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
-          // Pastikan Match Timer berhenti saat Prep Timer dijalankan
+          // Jika timer lomba sedang berjalan, hentikan dan hitung sisa waktunya secara presisi
           if (next.matchTimer && next.matchTimer.isRunning) {
-            if (next.matchTimer.startedAt) {
-              const elapsedM = (Date.now() - next.matchTimer.startedAt) / 1000;
-              next.matchTimer.remainingSec = Math.max(0, Math.ceil(next.matchTimer.baseRemainingSec - elapsedM));
-            }
+            const mElapsed = next.matchTimer.startedAt ? (Date.now() - next.matchTimer.startedAt) / 1000 : 0;
+            next.matchTimer.remainingSec = Math.max(0, Math.ceil((next.matchTimer.baseRemainingSec || 300) - mElapsed));
             next.matchTimer.isRunning = false;
             next.matchTimer.startedAt = null;
             next.matchTimer.baseRemainingSec = next.matchTimer.remainingSec;
@@ -362,8 +372,8 @@
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
           if (next.prepTimer.isRunning && next.prepTimer.startedAt) {
-            const elapsedP = (Date.now() - next.prepTimer.startedAt) / 1000;
-            next.prepTimer.remainingSec = Math.max(0, Math.ceil(next.prepTimer.baseRemainingSec - elapsedP));
+            const pElapsed = (Date.now() - next.prepTimer.startedAt) / 1000;
+            next.prepTimer.remainingSec = Math.max(0, Math.ceil((next.prepTimer.baseRemainingSec || 300) - pElapsed));
           }
           next.prepTimer.isRunning = false;
           next.prepTimer.startedAt = null;
@@ -397,7 +407,10 @@
       if (!st.matchTimer.isRunning) {
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
+          // Jika timer preparation sedang berjalan, hentikan dan hitung sisa waktunya secara presisi
           if (next.prepTimer && next.prepTimer.isRunning) {
+            const pElapsed = next.prepTimer.startedAt ? (Date.now() - next.prepTimer.startedAt) / 1000 : 0;
+            next.prepTimer.remainingSec = Math.max(0, Math.ceil((next.prepTimer.baseRemainingSec || 300) - pElapsed));
             next.prepTimer.isRunning = false;
             next.prepTimer.startedAt = null;
             next.prepTimer.baseRemainingSec = next.prepTimer.remainingSec;
@@ -428,7 +441,7 @@
           next.matchTimer.startedAt = null;
           next.matchTimer.baseRemainingSec = next.matchTimer.remainingSec;
           if (next.scoring.bonusFinishChecked) {
-            next.scoring.finishTimeSec = window.getMatchTimerElapsedSec(next.matchTimer, next.scoring.finishTimeSec || 180);
+            next.scoring.finishTimeSec = window.getMatchTimerElapsedSec(next.matchTimer, next.scoring.finishTimeSec || 300);
             syncScoringIntoTrial(next, false);
           }
           return next;
@@ -466,17 +479,11 @@
     btnRecordRetry.addEventListener('click', () => {
       store.setState((prev) => {
         const next = JSON.parse(JSON.stringify(prev));
-        let currentRem = Number(next.matchTimer.remainingSec) || 300;
-        if (next.matchTimer.isRunning && next.matchTimer.startedAt) {
-          const elp = (Date.now() - next.matchTimer.startedAt) / 1000;
-          currentRem = Math.max(0, Math.ceil((next.matchTimer.baseRemainingSec || 300) - elp));
-          next.matchTimer.remainingSec = currentRem;
-        }
-        next.matchTimer.retryTimestampSec = currentRem;
+        next.matchTimer.retryTimestampSec = next.matchTimer.remainingSec;
         next.scoring.retryCount = 1;
-        next.scoring.retryRestartTimeSec = currentRem;
+        next.scoring.retryRestartTimeSec = next.matchTimer.remainingSec;
         if (next.scoring.bonusFinishChecked) {
-          next.scoring.finishTimeSec = window.getMatchTimerElapsedSec(next.matchTimer, next.scoring.finishTimeSec || 180);
+          next.scoring.finishTimeSec = window.getMatchTimerElapsedSec(next.matchTimer, next.scoring.finishTimeSec || 300);
           syncScoringIntoTrial(next, false);
         }
         return next;
@@ -549,6 +556,9 @@
 
   if (selScoreTeam) {
     selScoreTeam.addEventListener('change', (e) => {
+      if (isCameraRecording()) {
+        stopAndSaveCameraRecording('Ganti Tim');
+      }
       const teamId = e.target.value;
       const st = store.getState();
       const trialIdx = Number(st.scoring.trialIndex) || 0;
@@ -563,6 +573,9 @@
 
   if (selScoreTrial) {
     selScoreTrial.addEventListener('change', (e) => {
+      if (isCameraRecording()) {
+        stopAndSaveCameraRecording('Ganti Percobaan');
+      }
       const trialIdx = Number(e.target.value) || 0;
       const st = store.getState();
       const teamId = st.scoring.activeTeamId || 'team_1';
@@ -577,6 +590,9 @@
 
   if (btnPrevRunTop) {
     btnPrevRunTop.addEventListener('click', () => {
+      if (isCameraRecording()) {
+        stopAndSaveCameraRecording('Ganti Tim');
+      }
       const st = store.getState();
       const prevRun = window.getPrevRun(st.activeRun.runCode);
       if (!prevRun) return;
@@ -590,6 +606,9 @@
 
   if (btnNextRunTop) {
     btnNextRunTop.addEventListener('click', () => {
+      if (isCameraRecording()) {
+        stopAndSaveCameraRecording('Ganti Tim');
+      }
       const st = store.getState();
       const nextRun = window.getNextRun(st.activeRun.runCode);
       if (!nextRun) return;
@@ -1222,7 +1241,7 @@
         sc.finishTimeSec = 1;
       } else {
         const inpVal = inpFinishTimeSec ? Number(inpFinishTimeSec.value) : 0;
-        sc.finishTimeSec = Math.max(1, Math.min(299, inpVal || Number(sc.finishTimeSec) || 180));
+        sc.finishTimeSec = Math.max(1, Math.min(299, inpVal || Number(sc.finishTimeSec) || 300));
       }
     }
     if (fullState.prepTimer && fullState.prepTimer.isRunning) {
@@ -1250,7 +1269,7 @@
 
   if (inpFinishTimeSec) {
     inpFinishTimeSec.addEventListener('input', (e) => {
-      const val = Math.max(1, Math.min(299, Number(e.target.value) || 180));
+      const val = Math.max(1, Math.min(299, Number(e.target.value) || 300));
       updateScoringLive((sc) => {
         sc.finishTimeSec = val;
       });
@@ -1451,17 +1470,15 @@
         }
       };
 
-      activeMediaRecorder.onerror = (ev) => {
-        console.warn('MediaRecorder error terdeteksi:', ev);
-        stopAndSaveCameraRecording('Error Perekam');
+      activeMediaRecorder.onerror = () => {
+        stopAndSaveCameraRecording('Error Perekaman Kamera');
       };
 
-      if (recordingStream && typeof recordingStream.getVideoTracks === 'function') {
-        recordingStream.getVideoTracks().forEach((tr) => {
-          tr.addEventListener('ended', () => {
-            console.warn('Track kamera terputus!');
-            if (isCameraRecording() || recordedChunks.length > 0) {
-              stopAndSaveCameraRecording('Kamera Terputus');
+      if (recordingStream.getTracks) {
+        recordingStream.getTracks().forEach((track) => {
+          track.addEventListener('ended', () => {
+            if (isCameraRecording()) {
+              stopAndSaveCameraRecording('Stream Kamera Berhenti');
             }
           });
         });
@@ -1480,10 +1497,8 @@
         if (!isCameraRecording()) {
           clearInterval(recordingTickerInterval);
           recordingTickerInterval = null;
-          if (recordedChunks.length > 0) {
-            stopAndSaveCameraRecording('Perekam Inaktif');
-          } else {
-            updateCamRecUI('STANDBY', '#e2e8f0', '#334155', 'Mulai Rekam Manual', false);
+          if (activeMediaRecorder && activeMediaRecorder.state === 'inactive' && recordedChunks.length > 0) {
+            stopAndSaveCameraRecording('Perekaman Berhenti Otomatis');
           }
           return;
         }
@@ -1498,104 +1513,91 @@
   }
 
   async function stopAndSaveCameraRecording(triggerReason = 'Selesai') {
-    const hasChunks = Array.isArray(recordedChunks) && recordedChunks.length > 0;
-    const isRecActive = Boolean(activeMediaRecorder && activeMediaRecorder.state !== 'inactive');
-
-    if (!isRecActive && !hasChunks) {
-      updateCamRecUI('STANDBY', '#e2e8f0', '#334155', 'Mulai Rekam Manual', false);
-      return;
-    }
+    if (!activeMediaRecorder || activeMediaRecorder.state === 'inactive') return;
 
     const stSnapshot = JSON.parse(JSON.stringify(store.getState()));
     const durationSec = recordingStartedAt ? Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000)) : 1;
 
-    const finalizeAndSave = async (recorderInstance) => {
-      if (recordingTickerInterval) {
-        clearInterval(recordingTickerInterval);
-        recordingTickerInterval = null;
-      }
-      if (fallbackCanvasInterval) {
-        clearInterval(fallbackCanvasInterval);
-        fallbackCanvasInterval = null;
-      }
+    return new Promise((resolve) => {
+      activeMediaRecorder.onstop = async () => {
+        if (recordingTickerInterval) {
+          clearInterval(recordingTickerInterval);
+          recordingTickerInterval = null;
+        }
+        if (fallbackCanvasInterval) {
+          clearInterval(fallbackCanvasInterval);
+          fallbackCanvasInterval = null;
+        }
 
-      const mime = (recorderInstance && recorderInstance.mimeType) || 'video/webm';
-      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-      const blob = new Blob(recordedChunks, { type: mime });
-      recordedChunks = [];
-      activeMediaRecorder = null;
+        const mime = (activeMediaRecorder && activeMediaRecorder.mimeType) || 'video/webm';
+        const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+        const blob = new Blob(recordedChunks, { type: mime });
+        recordedChunks = [];
+        activeMediaRecorder = null;
 
-      updateCamRecUI('MENYIMPAN...', '#0284c7', '#ffffff', 'Mulai Rekam Manual', false);
+        updateCamRecUI('MENYIMPAN...', '#0284c7', '#ffffff', 'Mulai Rekam Manual', false);
 
-      const activeRun = stSnapshot.activeRun || {};
-      const teamId = stSnapshot.scoring.activeTeamId || activeRun.teamId || 'team_1';
-      const teamObj = stSnapshot.teams.find((t) => t.id === teamId) || stSnapshot.teams[0];
-      const trialIndex = Number(stSnapshot.scoring.trialIndex) || 0;
-      const calc = window.calculateSARScore(stSnapshot.scoring, stSnapshot.matchTimer);
+        const activeRun = stSnapshot.activeRun || {};
+        const teamId = stSnapshot.scoring.activeTeamId || activeRun.teamId || 'team_1';
+        const teamObj = stSnapshot.teams.find((t) => t.id === teamId) || stSnapshot.teams[0];
+        const trialIndex = Number(stSnapshot.scoring.trialIndex) || 0;
+        const calc = window.calculateSARScore(stSnapshot.scoring, stSnapshot.matchTimer);
 
-      const params = new URLSearchParams({
-        teamId: teamObj.id,
-        teamName: teamObj.name,
-        university: teamObj.university,
-        trialIndex: String(trialIndex),
-        trialLabel: `Percobaan ${trialIndex + 1}`,
-        finalScore: String(calc.finalScore),
-        rawScore: String(calc.rawScore),
-        finishTimeSec: String(calc.timeSec),
-        durationSec: String(durationSec),
-        trigger: triggerReason,
-        ext
-      });
+        const params = new URLSearchParams({
+          teamId: teamObj.id,
+          teamName: teamObj.name,
+          university: teamObj.university,
+          trialIndex: String(trialIndex),
+          trialLabel: `Percobaan ${trialIndex + 1}`,
+          finalScore: String(calc.finalScore),
+          rawScore: String(calc.rawScore),
+          finishTimeSec: String(calc.timeSec),
+          durationSec: String(durationSec),
+          trigger: triggerReason,
+          ext
+        });
+
+        try {
+          const res = await fetch(`/api/recordings?${params.toString()}`, {
+            method: 'POST',
+            headers: { 'Content-Type': mime },
+            body: blob
+          });
+          if (!res.ok) throw new Error('Server upload failed');
+          const data = await res.json();
+          if (data && data.ok && data.recording) {
+            updateCamRecUI('TERSIMPAN', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
+            if (opCamRecSavedInfo) {
+              opCamRecSavedInfo.textContent = `Tersimpan di recordings/${data.recording.filename}`;
+            }
+            await loadOperatorRecordingsList();
+            resolve(data.recording);
+            return;
+          }
+        } catch (err) {
+          // Fallback jika dibuka tanpa server.py: unduh otomatis file video ke komputer
+          const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+          const safeTeam = (teamObj.name || 'Tim').replace(/[^A-Za-z0-9_-]+/g, '_');
+          const fallbackName = `${ts}_${safeTeam}_Percobaan_${trialIndex + 1}_Skor_${calc.finalScore}.${ext}`;
+          const blobUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = fallbackName;
+          a.click();
+          updateCamRecUI('TERUNDUH LOKAL', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
+          if (opCamRecSavedInfo) {
+            opCamRecSavedInfo.textContent = `Disimpan lokal: ${fallbackName}`;
+          }
+        }
+        resolve(null);
+      };
 
       try {
-        const res = await fetch(`/api/recordings?${params.toString()}`, {
-          method: 'POST',
-          headers: { 'Content-Type': mime },
-          body: blob
-        });
-        if (!res.ok) throw new Error('Server upload failed');
-        const data = await res.json();
-        if (data && data.ok && data.recording) {
-          updateCamRecUI('TERSIMPAN', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
-          if (opCamRecSavedInfo) {
-            opCamRecSavedInfo.textContent = `Tersimpan di recordings/${data.recording.filename}`;
-          }
-          await loadOperatorRecordingsList();
-          return data.recording;
-        }
-      } catch (err) {
-        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        const safeTeam = (teamObj.name || 'Tim').replace(/[^A-Za-z0-9_-]+/g, '_');
-        const fallbackName = `${ts}_${safeTeam}_Percobaan_${trialIndex + 1}_Skor_${calc.finalScore}.${ext}`;
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = fallbackName;
-        a.click();
-        updateCamRecUI('TERUNDUH LOKAL', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
-        if (opCamRecSavedInfo) {
-          opCamRecSavedInfo.textContent = `Disimpan lokal: ${fallbackName}`;
-        }
+        activeMediaRecorder.stop();
+      } catch (e) {
+        resolve(null);
       }
-      return null;
-    };
-
-    if (isRecActive && activeMediaRecorder) {
-      const rec = activeMediaRecorder;
-      return new Promise((resolve) => {
-        rec.onstop = async () => {
-          const result = await finalizeAndSave(rec);
-          resolve(result);
-        };
-        try {
-          rec.stop();
-        } catch (e) {
-          finalizeAndSave(rec).then(resolve);
-        }
-      });
-    } else {
-      return finalizeAndSave(activeMediaRecorder);
-    }
+    });
   }
 
   if (btnCamRecToggle) {
@@ -2048,7 +2050,12 @@
     const calc = window.calculateSARScore(state.scoring, state.matchTimer);
 
     if (inpFinishTimeSec && document.activeElement !== inpFinishTimeSec) {
-      inpFinishTimeSec.value = calc.timeSec || state.scoring.finishTimeSec || 180;
+      if (state.scoring && state.scoring.finishTimeSec > 0) {
+        inpFinishTimeSec.value = state.scoring.finishTimeSec;
+      } else {
+        const liveSec = window.getMatchTimerElapsedSec(state.matchTimer, 0);
+        inpFinishTimeSec.value = liveSec > 0 ? liveSec : '';
+      }
     }
 
     const bonusPreviewEl = document.getElementById('opBonusPreviewBadge');
@@ -2057,7 +2064,7 @@
         bonusPreviewEl.textContent = `Rumus: ${calc.rawScore} x (300 / ${calc.timeSec}s) = ${calc.finalScore} (+${calc.bonusPoints} Poin)`;
         bonusPreviewEl.style.color = '#15803d';
       } else {
-        const latestTime = window.getMatchTimerElapsedSec(state.matchTimer, state.scoring.finishTimeSec || 180);
+        const latestTime = window.getMatchTimerElapsedSec(state.matchTimer, state.scoring.finishTimeSec || 300);
         const previewTotal = calc.rawScore > 0 ? Math.round((calc.rawScore * 300) / Math.min(299, latestTime)) : 0;
         const previewBonus = Math.max(0, previewTotal - calc.rawScore);
         bonusPreviewEl.textContent = `Waktu: ${latestTime}s | Rumus: ${calc.rawScore} x (300 / ${latestTime}s) = ${previewTotal} (+${previewBonus})`;
@@ -2083,12 +2090,6 @@
           <div style="font-size:30px;font-weight:800;color:#fde047;line-height:1;">${calc.finalScore}</div>
         </div>
       `;
-    }
-
-    if (miniIframe && miniIframe.contentWindow) {
-      try {
-        miniIframe.contentWindow.postMessage({ type: 'STATE_SYNC', state }, '*');
-      } catch (e) {}
     }
   }
 
