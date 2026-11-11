@@ -528,7 +528,9 @@ class KSTIStateStore {
     this.state = this.loadFromStorage();
     this.channel = null;
 
-    if (typeof BroadcastChannel !== 'undefined') {
+    const isInsideIframe = typeof window !== 'undefined' && window.self !== window.top;
+
+    if (!isInsideIframe && typeof BroadcastChannel !== 'undefined') {
       try {
         this.channel = new BroadcastChannel(CHANNEL_NAME);
         this.channel.onmessage = (ev) => {
@@ -539,26 +541,43 @@ class KSTIStateStore {
       } catch (e) {}
     }
 
-    window.addEventListener('storage', (ev) => {
-      if (ev.key === STORAGE_KEY && ev.newValue) {
-        try {
-          this.applyExternalState(JSON.parse(ev.newValue));
-        } catch (e) {}
-      }
-    });
+    if (!isInsideIframe) {
+      window.addEventListener('storage', (ev) => {
+        if (ev.key === STORAGE_KEY && ev.newValue) {
+          try {
+            this.applyExternalState(JSON.parse(ev.newValue));
+          } catch (e) {}
+        }
+      });
+    }
 
     window.addEventListener('message', (ev) => {
       if (ev.data && ev.data.type === 'STATE_SYNC') {
         this.applyExternalState(ev.data.state);
-      } else if (ev.data && ev.data.type === 'REQUEST_STATE') {
+      } else if (!isInsideIframe && ev.data && ev.data.type === 'REQUEST_STATE') {
         this.broadcast();
       }
     });
 
-    if (window.opener) {
+    if (!isInsideIframe && window.opener) {
       try {
         window.opener.postMessage({ type: 'REQUEST_STATE' }, '*');
       } catch (e) {}
+    }
+
+    if (!isInsideIframe) {
+      setInterval(async () => {
+        try {
+          const res = await fetch('/api/state');
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.ok && data.state && data.state.lastUpdated) {
+            if (data.state.lastUpdated > (this.state.lastUpdated || 0)) {
+              this.applyExternalState(data.state);
+            }
+          }
+        } catch (e) {}
+      }, 1000);
     }
   }
 
@@ -575,7 +594,7 @@ class KSTIStateStore {
   mergeWithDefault(partial) {
     const base = JSON.parse(JSON.stringify(DEFAULT_STATE));
     const mergedTeams = Array.isArray(partial.teams) && partial.teams.length >= 12
-      ? partial.teams
+      ? partial.teams.map((t, idx) => Object.assign({}, base.teams[idx] || {}, t))
       : base.teams;
 
     if (partial.prepTimer && partial.prepTimer.durationSec === 180) {
@@ -615,22 +634,38 @@ class KSTIStateStore {
     this.saveToStorage();
     this.broadcast();
     this.notify();
+    this.syncToServer();
+  }
+
+  syncToServer() {
+    if (typeof window !== 'undefined' && window.self !== window.top) return;
+    if (this._syncTimer) clearTimeout(this._syncTimer);
+    this._syncTimer = setTimeout(() => {
+      try {
+        fetch('/api/state', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.state)
+        }).catch(() => {});
+      } catch (e) {}
+    }, 200);
   }
 
   applyExternalState(newState) {
     if (!newState) return;
     this.state = this.mergeWithDefault(newState);
-    this.saveToStorage();
     this.notify();
   }
 
   saveToStorage() {
+    if (typeof window !== 'undefined' && window.self !== window.top) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
     } catch (e) {}
   }
 
   broadcast() {
+    if (typeof window !== 'undefined' && window.self !== window.top) return;
     const msg = { type: 'STATE_SYNC', state: this.state };
     if (this.channel) {
       try {

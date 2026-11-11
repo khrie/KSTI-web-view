@@ -54,9 +54,6 @@
     const prepRem = computeLiveRemaining(state.prepTimer, 300);
     const matchRem = computeLiveRemaining(state.matchTimer, 300);
 
-    if (state.prepTimer) state.prepTimer.remainingSec = prepRem;
-    if (state.matchTimer) state.matchTimer.remainingSec = matchRem;
-
     // 1. Update Preparation Timer DOM
     const prepDigitsEl = viewport.querySelector('#bcPrepTimerDigits');
     if (prepDigitsEl) prepDigitsEl.textContent = window.formatTimerDigits(prepRem);

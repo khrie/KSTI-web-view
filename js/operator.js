@@ -339,6 +339,16 @@
       if (!st.prepTimer.isRunning) {
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
+          // Pastikan Match Timer berhenti saat Prep Timer dijalankan
+          if (next.matchTimer && next.matchTimer.isRunning) {
+            if (next.matchTimer.startedAt) {
+              const elapsedM = (Date.now() - next.matchTimer.startedAt) / 1000;
+              next.matchTimer.remainingSec = Math.max(0, Math.ceil(next.matchTimer.baseRemainingSec - elapsedM));
+            }
+            next.matchTimer.isRunning = false;
+            next.matchTimer.startedAt = null;
+            next.matchTimer.baseRemainingSec = next.matchTimer.remainingSec;
+          }
           if (next.prepTimer.remainingSec <= 0) {
             next.prepTimer.remainingSec = 300;
           }
@@ -351,6 +361,10 @@
       } else {
         store.setState((prev) => {
           const next = JSON.parse(JSON.stringify(prev));
+          if (next.prepTimer.isRunning && next.prepTimer.startedAt) {
+            const elapsedP = (Date.now() - next.prepTimer.startedAt) / 1000;
+            next.prepTimer.remainingSec = Math.max(0, Math.ceil(next.prepTimer.baseRemainingSec - elapsedP));
+          }
           next.prepTimer.isRunning = false;
           next.prepTimer.startedAt = null;
           next.prepTimer.baseRemainingSec = next.prepTimer.remainingSec;
@@ -452,9 +466,15 @@
     btnRecordRetry.addEventListener('click', () => {
       store.setState((prev) => {
         const next = JSON.parse(JSON.stringify(prev));
-        next.matchTimer.retryTimestampSec = next.matchTimer.remainingSec;
+        let currentRem = Number(next.matchTimer.remainingSec) || 300;
+        if (next.matchTimer.isRunning && next.matchTimer.startedAt) {
+          const elp = (Date.now() - next.matchTimer.startedAt) / 1000;
+          currentRem = Math.max(0, Math.ceil((next.matchTimer.baseRemainingSec || 300) - elp));
+          next.matchTimer.remainingSec = currentRem;
+        }
+        next.matchTimer.retryTimestampSec = currentRem;
         next.scoring.retryCount = 1;
-        next.scoring.retryRestartTimeSec = next.matchTimer.remainingSec;
+        next.scoring.retryRestartTimeSec = currentRem;
         if (next.scoring.bonusFinishChecked) {
           next.scoring.finishTimeSec = window.getMatchTimerElapsedSec(next.matchTimer, next.scoring.finishTimeSec || 180);
           syncScoringIntoTrial(next, false);
@@ -515,6 +535,8 @@
       if (matchExpiredNow && isCameraRecording()) {
         stopAndSaveCameraRecording('Waktu Lomba Habis (300s)');
       }
+    } else if ((st.prepTimer && st.prepTimer.isRunning) || (st.matchTimer && st.matchTimer.isRunning)) {
+      syncFastTimerAndScoreDOM(st);
     }
   }, 100);
 
@@ -1429,6 +1451,22 @@
         }
       };
 
+      activeMediaRecorder.onerror = (ev) => {
+        console.warn('MediaRecorder error terdeteksi:', ev);
+        stopAndSaveCameraRecording('Error Perekam');
+      };
+
+      if (recordingStream && typeof recordingStream.getVideoTracks === 'function') {
+        recordingStream.getVideoTracks().forEach((tr) => {
+          tr.addEventListener('ended', () => {
+            console.warn('Track kamera terputus!');
+            if (isCameraRecording() || recordedChunks.length > 0) {
+              stopAndSaveCameraRecording('Kamera Terputus');
+            }
+          });
+        });
+      }
+
       recordingStartedAt = Date.now();
       activeMediaRecorder.start(400);
 
@@ -1441,6 +1479,12 @@
       recordingTickerInterval = setInterval(() => {
         if (!isCameraRecording()) {
           clearInterval(recordingTickerInterval);
+          recordingTickerInterval = null;
+          if (recordedChunks.length > 0) {
+            stopAndSaveCameraRecording('Perekam Inaktif');
+          } else {
+            updateCamRecUI('STANDBY', '#e2e8f0', '#334155', 'Mulai Rekam Manual', false);
+          }
           return;
         }
         const sec = Math.max(0, Math.floor((Date.now() - recordingStartedAt) / 1000));
@@ -1454,91 +1498,104 @@
   }
 
   async function stopAndSaveCameraRecording(triggerReason = 'Selesai') {
-    if (!activeMediaRecorder || activeMediaRecorder.state === 'inactive') return;
+    const hasChunks = Array.isArray(recordedChunks) && recordedChunks.length > 0;
+    const isRecActive = Boolean(activeMediaRecorder && activeMediaRecorder.state !== 'inactive');
+
+    if (!isRecActive && !hasChunks) {
+      updateCamRecUI('STANDBY', '#e2e8f0', '#334155', 'Mulai Rekam Manual', false);
+      return;
+    }
 
     const stSnapshot = JSON.parse(JSON.stringify(store.getState()));
     const durationSec = recordingStartedAt ? Math.max(1, Math.round((Date.now() - recordingStartedAt) / 1000)) : 1;
 
-    return new Promise((resolve) => {
-      activeMediaRecorder.onstop = async () => {
-        if (recordingTickerInterval) {
-          clearInterval(recordingTickerInterval);
-          recordingTickerInterval = null;
-        }
-        if (fallbackCanvasInterval) {
-          clearInterval(fallbackCanvasInterval);
-          fallbackCanvasInterval = null;
-        }
+    const finalizeAndSave = async (recorderInstance) => {
+      if (recordingTickerInterval) {
+        clearInterval(recordingTickerInterval);
+        recordingTickerInterval = null;
+      }
+      if (fallbackCanvasInterval) {
+        clearInterval(fallbackCanvasInterval);
+        fallbackCanvasInterval = null;
+      }
 
-        const mime = (activeMediaRecorder && activeMediaRecorder.mimeType) || 'video/webm';
-        const ext = mime.includes('mp4') ? 'mp4' : 'webm';
-        const blob = new Blob(recordedChunks, { type: mime });
-        recordedChunks = [];
-        activeMediaRecorder = null;
+      const mime = (recorderInstance && recorderInstance.mimeType) || 'video/webm';
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const blob = new Blob(recordedChunks, { type: mime });
+      recordedChunks = [];
+      activeMediaRecorder = null;
 
-        updateCamRecUI('MENYIMPAN...', '#0284c7', '#ffffff', 'Mulai Rekam Manual', false);
+      updateCamRecUI('MENYIMPAN...', '#0284c7', '#ffffff', 'Mulai Rekam Manual', false);
 
-        const activeRun = stSnapshot.activeRun || {};
-        const teamId = stSnapshot.scoring.activeTeamId || activeRun.teamId || 'team_1';
-        const teamObj = stSnapshot.teams.find((t) => t.id === teamId) || stSnapshot.teams[0];
-        const trialIndex = Number(stSnapshot.scoring.trialIndex) || 0;
-        const calc = window.calculateSARScore(stSnapshot.scoring, stSnapshot.matchTimer);
+      const activeRun = stSnapshot.activeRun || {};
+      const teamId = stSnapshot.scoring.activeTeamId || activeRun.teamId || 'team_1';
+      const teamObj = stSnapshot.teams.find((t) => t.id === teamId) || stSnapshot.teams[0];
+      const trialIndex = Number(stSnapshot.scoring.trialIndex) || 0;
+      const calc = window.calculateSARScore(stSnapshot.scoring, stSnapshot.matchTimer);
 
-        const params = new URLSearchParams({
-          teamId: teamObj.id,
-          teamName: teamObj.name,
-          university: teamObj.university,
-          trialIndex: String(trialIndex),
-          trialLabel: `Percobaan ${trialIndex + 1}`,
-          finalScore: String(calc.finalScore),
-          rawScore: String(calc.rawScore),
-          finishTimeSec: String(calc.timeSec),
-          durationSec: String(durationSec),
-          trigger: triggerReason,
-          ext
-        });
-
-        try {
-          const res = await fetch(`/api/recordings?${params.toString()}`, {
-            method: 'POST',
-            headers: { 'Content-Type': mime },
-            body: blob
-          });
-          if (!res.ok) throw new Error('Server upload failed');
-          const data = await res.json();
-          if (data && data.ok && data.recording) {
-            updateCamRecUI('TERSIMPAN', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
-            if (opCamRecSavedInfo) {
-              opCamRecSavedInfo.textContent = `Tersimpan di recordings/${data.recording.filename}`;
-            }
-            await loadOperatorRecordingsList();
-            resolve(data.recording);
-            return;
-          }
-        } catch (err) {
-          // Fallback jika dibuka tanpa server.py: unduh otomatis file video ke komputer
-          const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-          const safeTeam = (teamObj.name || 'Tim').replace(/[^A-Za-z0-9_-]+/g, '_');
-          const fallbackName = `${ts}_${safeTeam}_Percobaan_${trialIndex + 1}_Skor_${calc.finalScore}.${ext}`;
-          const blobUrl = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = blobUrl;
-          a.download = fallbackName;
-          a.click();
-          updateCamRecUI('TERUNDUH LOKAL', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
-          if (opCamRecSavedInfo) {
-            opCamRecSavedInfo.textContent = `Disimpan lokal: ${fallbackName}`;
-          }
-        }
-        resolve(null);
-      };
+      const params = new URLSearchParams({
+        teamId: teamObj.id,
+        teamName: teamObj.name,
+        university: teamObj.university,
+        trialIndex: String(trialIndex),
+        trialLabel: `Percobaan ${trialIndex + 1}`,
+        finalScore: String(calc.finalScore),
+        rawScore: String(calc.rawScore),
+        finishTimeSec: String(calc.timeSec),
+        durationSec: String(durationSec),
+        trigger: triggerReason,
+        ext
+      });
 
       try {
-        activeMediaRecorder.stop();
-      } catch (e) {
-        resolve(null);
+        const res = await fetch(`/api/recordings?${params.toString()}`, {
+          method: 'POST',
+          headers: { 'Content-Type': mime },
+          body: blob
+        });
+        if (!res.ok) throw new Error('Server upload failed');
+        const data = await res.json();
+        if (data && data.ok && data.recording) {
+          updateCamRecUI('TERSIMPAN', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
+          if (opCamRecSavedInfo) {
+            opCamRecSavedInfo.textContent = `Tersimpan di recordings/${data.recording.filename}`;
+          }
+          await loadOperatorRecordingsList();
+          return data.recording;
+        }
+      } catch (err) {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+        const safeTeam = (teamObj.name || 'Tim').replace(/[^A-Za-z0-9_-]+/g, '_');
+        const fallbackName = `${ts}_${safeTeam}_Percobaan_${trialIndex + 1}_Skor_${calc.finalScore}.${ext}`;
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fallbackName;
+        a.click();
+        updateCamRecUI('TERUNDUH LOKAL', '#dcfce7', '#15803d', 'Mulai Rekam Manual', false);
+        if (opCamRecSavedInfo) {
+          opCamRecSavedInfo.textContent = `Disimpan lokal: ${fallbackName}`;
+        }
       }
-    });
+      return null;
+    };
+
+    if (isRecActive && activeMediaRecorder) {
+      const rec = activeMediaRecorder;
+      return new Promise((resolve) => {
+        rec.onstop = async () => {
+          const result = await finalizeAndSave(rec);
+          resolve(result);
+        };
+        try {
+          rec.stop();
+        } catch (e) {
+          finalizeAndSave(rec).then(resolve);
+        }
+      });
+    } else {
+      return finalizeAndSave(activeMediaRecorder);
+    }
   }
 
   if (btnCamRecToggle) {
@@ -1904,10 +1961,22 @@
     }
   }
 
+  function computeLiveTimerRemaining(timerObj, fallbackSec) {
+    if (!timerObj) return fallbackSec;
+    if (timerObj.isRunning && timerObj.startedAt) {
+      const elapsed = (Date.now() - timerObj.startedAt) / 1000;
+      return Math.max(0, Math.ceil((timerObj.baseRemainingSec || fallbackSec) - elapsed));
+    }
+    return Math.max(0, Math.ceil(Number(timerObj.remainingSec ?? fallbackSec)));
+  }
+
   // -------------------- FAST TIMER & SCORE DOM UPDATER --------------------
   function syncFastTimerAndScoreDOM(state) {
     const prepTimer = state.prepTimer || { durationSec: 300, remainingSec: 300, isRunning: false };
     const matchTimer = state.matchTimer || { durationSec: 300, remainingSec: 300, isRunning: false };
+
+    const prepLiveRem = computeLiveTimerRemaining(prepTimer, 300);
+    const matchLiveRem = computeLiveTimerRemaining(matchTimer, 300);
 
     // 1. Preparation Timer Card
     const prepDigitsEl = document.getElementById('opPrepTimerDigits');
@@ -1915,15 +1984,15 @@
     const prepElapsedEl = document.getElementById('opPrepElapsedDigits');
     const prepBadgeEl = document.getElementById('opPrepStatusBadge');
 
-    if (prepDigitsEl) prepDigitsEl.textContent = window.formatTimerDigits(prepTimer.remainingSec);
-    if (prepMMSSEl) prepMMSSEl.textContent = `(${window.formatTimerMMSS(prepTimer.remainingSec)})`;
-    if (prepElapsedEl) prepElapsedEl.textContent = `${Math.max(0, 300 - prepTimer.remainingSec)}s / 300s`;
+    if (prepDigitsEl) prepDigitsEl.textContent = window.formatTimerDigits(prepLiveRem);
+    if (prepMMSSEl) prepMMSSEl.textContent = `(${window.formatTimerMMSS(prepLiveRem)})`;
+    if (prepElapsedEl) prepElapsedEl.textContent = `${Math.max(0, 300 - prepLiveRem)}s / 300s`;
     if (prepBadgeEl) {
       if (prepTimer.isRunning) {
         prepBadgeEl.textContent = 'PREP BERJALAN';
         prepBadgeEl.style.background = '#0284c7';
         prepBadgeEl.style.color = '#fff';
-      } else if (prepTimer.remainingSec <= 0) {
+      } else if (prepLiveRem <= 0) {
         prepBadgeEl.textContent = 'PREP SELESAI';
         prepBadgeEl.style.background = '#dc2626';
         prepBadgeEl.style.color = '#fff';
@@ -1945,15 +2014,15 @@
     const matchBadgeEl = document.getElementById('opMatchStatusBadge');
     const retryInfoEl = document.getElementById('opRetryInfoText');
 
-    if (matchDigitsEl) matchDigitsEl.textContent = window.formatTimerDigits(matchTimer.remainingSec);
-    if (matchMMSSEl) matchMMSSEl.textContent = `(${window.formatTimerMMSS(matchTimer.remainingSec)})`;
-    if (matchElapsedEl) matchElapsedEl.textContent = `${Math.max(0, 300 - matchTimer.remainingSec)}s / 300s`;
+    if (matchDigitsEl) matchDigitsEl.textContent = window.formatTimerDigits(matchLiveRem);
+    if (matchMMSSEl) matchMMSSEl.textContent = `(${window.formatTimerMMSS(matchLiveRem)})`;
+    if (matchElapsedEl) matchElapsedEl.textContent = `${Math.max(0, 300 - matchLiveRem)}s / 300s`;
     if (matchBadgeEl) {
       if (matchTimer.isRunning) {
         matchBadgeEl.textContent = 'LOMBA BERJALAN';
         matchBadgeEl.style.background = '#16a34a';
         matchBadgeEl.style.color = '#fff';
-      } else if (matchTimer.remainingSec <= 0) {
+      } else if (matchLiveRem <= 0) {
         matchBadgeEl.textContent = 'WAKTU HABIS';
         matchBadgeEl.style.background = '#dc2626';
         matchBadgeEl.style.color = '#fff';

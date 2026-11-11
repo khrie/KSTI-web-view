@@ -21,6 +21,7 @@ ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 RECORDINGS_DIR = os.path.join(ROOT_DIR, "recordings")
 METADATA_FILE = os.path.join(RECORDINGS_DIR, "metadata.json")
 SCORE_CSV_FILE = os.path.join(ROOT_DIR, "Skor KSTI Robotics 2026 - SAR.csv")
+STATE_CACHE = {}
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
@@ -188,6 +189,9 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
             else:
                 return self.send_json({"ok": False, "error": "File CSV skor belum ada"}, status=404)
 
+        if route == "/api/state":
+            return self.send_json({"ok": True, "state": STATE_CACHE})
+
         # Support HTTP Range requests for video files so scrubbing/seeking works on all LAN browsers
         range_header = self.headers.get("Range")
         if range_header and route.startswith("/recordings/"):
@@ -267,6 +271,18 @@ class KSTISARRequestHandler(SimpleHTTPRequestHandler):
 
                 print(f"[SCORES] Skor tersimpan di: {SCORE_CSV_FILE}")
                 return self.send_json({"ok": True, "message": "Skor berhasil disimpan ke CSV"})
+            except Exception as e:
+                return self.send_json({"ok": False, "error": str(e)}, status=500)
+
+        if parsed.path == "/api/state":
+            try:
+                content_length = int(self.headers.get("Content-Length", "0"))
+                post_data = self.rfile.read(content_length)
+                payload = json.loads(post_data.decode("utf-8"))
+                global STATE_CACHE
+                if isinstance(payload, dict):
+                    STATE_CACHE = payload
+                return self.send_json({"ok": True})
             except Exception as e:
                 return self.send_json({"ok": False, "error": str(e)}, status=500)
 

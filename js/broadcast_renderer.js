@@ -781,7 +781,8 @@ async function hydrateWebcamSlots(rootEl) {
       }
       if (msgEl) msgEl.style.display = 'none';
 
-      if (window.KSTIDvr && typeof window.KSTIDvr.attachToPlayer === 'function') {
+      const isInsideIframe = (typeof window !== 'undefined') && (window.self !== window.top);
+      if (!isInsideIframe && window.KSTIDvr && typeof window.KSTIDvr.attachToPlayer === 'function') {
         wrap._dvrPlayer = window.KSTIDvr.attachToPlayer(wrap, stream);
       }
     } catch (err) {

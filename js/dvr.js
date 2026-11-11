@@ -51,6 +51,10 @@
       });
       this.mountedPlayers.forEach((player) => {
         try {
+          if (!player.container || (typeof document !== 'undefined' && !document.body.contains(player.container))) {
+            this.mountedPlayers.delete(player);
+            return;
+          }
           player.updateUI(stateSnapshot);
         } catch (e) {
           console.error(e);
